@@ -76,12 +76,14 @@ Copies openspec-tools to `~/.openspec-tools/`.
 Auto-detects the target environment and deploys accordingly:
 - `.opencode/` present → commands to `.opencode/commands/`, skills to `.opencode/skills/`
 - `.kiro/` present → prompts to `.kiro/prompts/`, skills to `.kiro/skills/`
-- Both present → deploys to both
+- `.claude/` present → commands to `.claude/commands/opsx/`, skills to `.claude/skills/`
+- Multiple present → deploys to all detected environments
 
 Force a specific target with flags:
 ```bash
 ./deploy.sh --kiro /path/to/project
 ./deploy.sh --opencode /path/to/project
+./deploy.sh --claude /path/to/project
 ```
 
 Deploy to the current directory:
