@@ -55,20 +55,52 @@ Apply audit findings and recommendations to an OpenSpec change's artifacts.
    For each audit finding, determine the appropriate fix:
 
    **Errors (must fix):**
+
+   *Accuracy:*
    - Missing spec for listed capability → Create the spec file with proper structure
    - Contradictory specs → Resolve the conflict by aligning to proposal intent
+
+   *Completeness:*
+   - Missing required artifact → Create the artifact with content derived from existing artifacts
    - Missing requirement scenarios → Add scenarios that validate the requirement
+
+   *Validity:*
    - Broken task dependencies → Fix cross-references
 
+   *Feasibility:*
+   - Design references non-existent code → Update design to match actual codebase, or add task to create missing symbols
+   - Design assumes wrong file structure → Correct paths and references
+
+   *Coherence:*
+   - Design exceeds proposal scope → Remove out-of-scope elements or confirm scope expansion with user
+   - Task ordering makes implementation impossible → Reorder tasks
+   - Overly coarse tasks → Break into actionable sub-tasks
+
    **Warnings (should fix):**
+
+   *Accuracy:*
    - Referenced source file does not exist → Update path references or remove stale refs
-   - Non-testable requirements → Rewrite with measurable/observable criteria
+
+   *Completeness:*
    - Empty or placeholder sections → Fill in content based on proposal context
    - Missing scenarios → Add meaningful scenarios
+
+   *Validity:*
+   - Non-testable requirements → Rewrite with measurable/observable criteria
+
+   *Feasibility:*
+   - Pattern inconsistency with codebase → Update design to follow established conventions
+
+   *Coherence:*
+   - Spec requirements with no design support → Add design mechanism
+   - Security surface omissions → Add validation/error-handling/encryption tasks
+   - Minor scope creep → Trim or confirm with user
 
    **Info (optional, apply if straightforward):**
    - Naming convention violations → Rename to kebab-case
    - Tasks without spec coverage → Add note or link to relevant requirement
+   - New dependencies → Note in tasks if installation step is missing
+   - Trivially fine-grained tasks → Merge into parent task
 
    Present the remediation plan to the user before applying.
 

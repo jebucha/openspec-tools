@@ -69,20 +69,52 @@ After `/opsx-audit` identifies issues in a change's artifacts (proposal, design,
    For each audit finding, determine the appropriate fix:
 
    **Errors (must fix):**
+
+   *Accuracy:*
    - Missing spec for listed capability → Create the spec file with proper structure (requirements + scenarios) derived from the proposal description
    - Contradictory specs → Resolve the conflict by aligning to proposal intent; if ambiguous, ask user
+
+   *Completeness:*
+   - Missing required artifact → Create the artifact with appropriate content derived from existing artifacts
    - Missing requirement scenarios → Add scenarios that validate the requirement behavior
+
+   *Validity:*
    - Broken task dependencies → Fix cross-references to valid task numbers
 
+   *Feasibility:*
+   - Design references non-existent functions/classes → Update design to reference actual codebase symbols, or add a task to create the missing symbol first
+   - Design assumes wrong file structure → Correct file paths and module references in design
+
+   *Coherence:*
+   - Design exceeds proposal scope → Remove out-of-scope elements from design, or ask user if proposal should be expanded
+   - Task ordering makes implementation impossible → Reorder tasks so dependencies are satisfied before dependents
+   - Overly coarse tasks → Break into smaller actionable sub-tasks
+
    **Warnings (should fix):**
+
+   *Accuracy:*
    - Referenced source file does not exist → Update path references in design/tasks or remove stale references
-   - Non-testable requirements → Rewrite with measurable/observable criteria while preserving intent
+
+   *Completeness:*
    - Empty or placeholder sections → Fill in content derived from proposal and design context
    - Missing scenarios → Add meaningful scenarios covering happy path and edge cases
+
+   *Validity:*
+   - Non-testable requirements → Rewrite with measurable/observable criteria while preserving intent
+
+   *Feasibility:*
+   - Design proposes patterns inconsistent with codebase → Update design to follow established patterns, noting the convention observed
+
+   *Coherence:*
+   - Spec requirements with no design support → Add design mechanism to satisfy the requirement
+   - Security surface omissions → Add appropriate tasks (input validation, error handling, encryption) for new attack surface
+   - Scope creep in design (minor) → Flag and trim, or ask user
 
    **Info (optional, apply if straightforward):**
    - Naming convention violations → Rename to kebab-case, update all references
    - Tasks without spec coverage → Add a note linking to relevant requirement, or flag as implementation detail
+   - New dependencies introduced → No fix needed, but note in tasks if installation step is missing
+   - Trivially fine-grained tasks → Merge into parent task
 
    Present the full remediation plan to the user before applying any changes.
 
