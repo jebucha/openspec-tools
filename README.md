@@ -73,7 +73,16 @@ Copies openspec-tools to `~/.openspec-tools/`.
 ./deploy.sh /path/to/your/project
 ```
 
-Copies all commands to `.opencode/commands/` and all skills to `.opencode/skills/` in the target project. The target must already have `.opencode/` initialized (run `openspec init` first).
+Auto-detects the target environment and deploys accordingly:
+- `.opencode/` present → commands to `.opencode/commands/`, skills to `.opencode/skills/`
+- `.kiro/` present → prompts to `.kiro/prompts/`, skills to `.kiro/skills/`
+- Both present → deploys to both
+
+Force a specific target with flags:
+```bash
+./deploy.sh --kiro /path/to/project
+./deploy.sh --opencode /path/to/project
+```
 
 Deploy to the current directory:
 
@@ -126,6 +135,28 @@ Findings are categorized by severity:
 - **Error** — Blocks implementation. Must be resolved.
 - **Warning** — Should be addressed. Proceed with caution.
 - **Info** — Awareness only. Optional to address.
+
+## Audit Persistence
+
+Audit reports are saved as files within the change directory:
+
+```
+openspec/changes/<name>/audits/<timestamp>-<model>.md
+```
+
+This enables:
+- **Multi-LLM comparison** — Run the same audit with different models, compare findings
+- **Historical tracking** — See how findings change across iterations (pre-fix vs post-fix)
+- **Decoupled workflow** — Audit and apply-audit don't need to happen in the same session
+- **Selective application** — Choose which audit's findings to apply when multiple exist
+
+Example:
+```
+openspec/changes/add-user-auth/audits/
+├── 2026-07-09T15-42-claude-opus.md
+├── 2026-07-09T15-50-gemini-pro.md
+└── 2026-07-09T16-01-claude-opus.md   ← post-fix re-audit
+```
 
 ## Typical Session
 

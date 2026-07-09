@@ -42,17 +42,29 @@ After `/opsx-audit` identifies issues in a change's artifacts (proposal, design,
 
 3. **Locate the audit report**
 
-   Look for the most recent audit output:
-   - Check conversation context for a prior `/opsx-audit` run in this session
-   - If no audit is available in context, inform the user and suggest:
-     "No audit report found in this session. Want me to run `/opsx-audit <name>` first?"
+   Look for audit results in the following order of priority:
 
-   **If the audit verdict is clean** (0 errors, 0 warnings): Report that no fixes are needed. Suggest proceeding with `/opsx-apply`.
+   **3a. Check for persisted audit files**
+   - Look in `openspec/changes/<name>/audits/` for saved audit reports
+   - Use glob to find all `.md` files in the directory
+   - If multiple audits exist:
+     - List them with timestamp, model, and summary (errors/warnings count from each)
+     - Use the **AskUserQuestion tool** to let the user select which audit to apply
+   - If exactly one audit exists, use it automatically
+
+   **3b. Fall back to session context**
+   - If no persisted audits exist, check conversation context for a prior `/opsx-audit` run in this session
+   - If no audit is available anywhere, inform the user and suggest:
+     "No audit report found. Want me to run `/opsx-audit <name>` first?"
+
+   **If the selected audit verdict is clean** (0 errors, 0 warnings): Report that no fixes are needed. Suggest proceeding with `/opsx-apply`.
 
    Parse the audit report to extract:
    - Error findings (must fix)
    - Warning findings (should fix)
    - Info findings (optional)
+
+   Announce which audit is being used: "Using audit: `<filename>`" (or "Using audit from current session" if from context).
 
 4. **Read all change artifact files**
 

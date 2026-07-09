@@ -32,13 +32,16 @@ Apply audit findings and recommendations to an OpenSpec change's artifacts.
 
 3. **Locate the audit report**
 
-   Look for the most recent audit output. Check:
-   - Conversation context for a prior `/opsx-audit` run in this session
-   - If no audit is available in context, run the audit inline:
-     ```bash
-     # Inform the user
-     ```
-     Then suggest: "No audit report found in this session. Want me to run `/opsx-audit <name>` first?"
+   Look for audit results in the following order of priority:
+
+   **3a. Check for persisted audit files**
+   - Look in `openspec/changes/<name>/audits/` for saved audit reports
+   - If multiple audits exist, list them and let the user select which to apply
+   - If exactly one audit exists, use it automatically
+
+   **3b. Fall back to session context**
+   - If no persisted audits exist, check conversation context for a prior `/opsx-audit` run
+   - If no audit is available anywhere, suggest running `/opsx-audit <name>` first
 
    **If the audit verdict is clean** (0 errors, 0 warnings): Report that no fixes are needed. Suggest proceeding with `/opsx-apply`.
 

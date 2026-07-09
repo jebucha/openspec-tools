@@ -202,6 +202,7 @@ I'll evaluate the change artifacts for:
    ## Audit Report: <change-name>
 
    **Schema:** <schema-name>
+   **Model:** <model that performed the audit>
    **Artifacts checked:** <list of artifacts that were read>
 
    ### Summary
@@ -244,13 +245,34 @@ I'll evaluate the change artifacts for:
    - If only info or clean: "Ready for implementation."
    - If no artifacts found: "No artifacts to audit. Create the change first."
 
-10. **Offer follow-up actions**
+10. **Persist the audit report**
+
+    Save the structured output to a file within the change directory:
+
+    ```
+    openspec/changes/<name>/audits/<timestamp>-<model>.md
+    ```
+
+    - Create the `audits/` directory if it doesn't exist
+    - Timestamp format: `YYYY-MM-DDTHH-MM` (e.g., `2026-07-09T15-42`)
+    - Model: short identifier of the model that performed the audit (e.g., `claude-opus`, `gemini-pro`, `gpt-4o`)
+    - Example: `openspec/changes/add-user-auth/audits/2026-07-09T15-42-claude-opus.md`
+
+    The persisted file contains the full structured report exactly as displayed, enabling:
+    - Multiple audits with different LLMs for comparison
+    - Historical tracking across audit iterations (pre-fix, post-fix)
+    - Decoupled workflow — `/opsx-apply-audit` can load from file without needing same session
+
+    Announce: "Audit saved to `<path>`"
+
+11. **Offer follow-up actions**
 
     After displaying the report, offer:
     - "Want me to help fix any of these findings?"
     - "Run `/opsx-apply-audit` to apply fixes to the artifacts."
     - "Run `/opsx-apply` to start implementing (if no blocking errors)."
     - "Run `/opsx-explore` to discuss the findings."
+    - "Run `/opsx-audit` again with a different model to compare."
 
 **Output Examples**
 
