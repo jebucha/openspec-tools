@@ -4,9 +4,8 @@ description: Audit an existing change proposal for accuracy, completeness, and v
 license: MIT
 compatibility: Requires openspec CLI.
 metadata:
-  author: openspec
+  author: jebucha
   version: "1.0"
-  generatedBy: "1.3.1"
 ---
 
 Audit an existing change proposal for quality issues before implementation.

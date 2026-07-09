@@ -12,10 +12,22 @@ if [[ ! -d "$TARGET/.opencode" ]]; then
   exit 1
 fi
 
+# Deploy all commands
 mkdir -p "$TARGET/.opencode/commands"
-mkdir -p "$TARGET/.opencode/skills/openspec-audit-change"
+for cmd in "$SCRIPT_DIR"/command/*.md; do
+  [[ -f "$cmd" ]] || continue
+  cp "$cmd" "$TARGET/.opencode/commands/"
+  echo "  Installed command: $(basename "$cmd")"
+done
 
-cp "$SCRIPT_DIR/command/opsx-audit.md" "$TARGET/.opencode/commands/"
-cp "$SCRIPT_DIR/skill/openspec-audit-change/SKILL.md" "$TARGET/.opencode/skills/openspec-audit-change/"
+# Deploy all skills
+for skill_dir in "$SCRIPT_DIR"/skill/*/; do
+  [[ -d "$skill_dir" ]] || continue
+  skill_name="$(basename "$skill_dir")"
+  mkdir -p "$TARGET/.opencode/skills/$skill_name"
+  cp "$skill_dir"* "$TARGET/.opencode/skills/$skill_name/" 2>/dev/null || true
+  echo "  Installed skill: $skill_name"
+done
 
-echo "Installed opsx-audit to $TARGET"
+echo ""
+echo "Deployed openspec-tools to $TARGET"
