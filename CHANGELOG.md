@@ -1,5 +1,21 @@
 # https://github.com/jebucha/openspec-tools.git
 
+## 1.2 — 2026-07-09
+
+### Added
+- **Duplication detection** (Accuracy 4d) — Identifies near-duplicate requirements and scenarios across spec files; flags lower-quality phrasing for consolidation.
+- **Terminology drift detection** (Accuracy 4e) — Tracks domain terms across all artifacts; flags when the same concept is named differently in different files.
+- **Ambiguity detection** (Validity 6a, enhanced) — Now explicitly flags vague qualifiers ("fast", "scalable", "robust", etc.) and unresolved placeholders (TODO, TBD, TKTK, ???).
+- **Coverage metrics table** — Audit output now includes quantitative metrics: total requirements, total tasks, coverage percentages, duplication count, ambiguity count.
+- **Stable finding IDs** — Each finding gets a deterministic ID (AC-1, CM-1, VL-1, FS-1, CO-1) for cross-referencing between audit and apply-audit.
+- **Findings cap** — Maximum 50 findings per audit, prioritized by severity, with overflow summary.
+- **Tabular report format** — Findings presented in a structured table (ID, Category, Severity, Description, Evidence) for easier scanning and reference.
+- **Requirements coverage mapping** — Systematic bidirectional mapping of requirements ↔ tasks with gap detection.
+
+### Changed
+- **openspec-audit-change skill** — Version bumped to 1.2. Enhanced with 4 new detection capabilities.
+- **openspec-apply-audit skill** — Now references findings by stable ID. Added remediation strategies for duplications, terminology drift, vague qualifiers, unresolved placeholders, and zero-coverage requirements.
+
 ## 1.1 — 2026-07-09
 
 ### Added

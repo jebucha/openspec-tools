@@ -78,6 +78,8 @@ After `/opsx-audit` identifies issues in a change's artifacts (proposal, design,
 
 5. **Plan remediation from audit findings**
 
+   Parse findings by their stable IDs (AC-1, CM-1, etc.) from the audit report.
+
    For each audit finding, determine the appropriate fix:
 
    **Errors (must fix):**
@@ -106,13 +108,16 @@ After `/opsx-audit` identifies issues in a change's artifacts (proposal, design,
 
    *Accuracy:*
    - Referenced source file does not exist → Update path references in design/tasks or remove stale references
+   - Near-duplicate requirements → Consolidate into a single requirement, keeping the more precise phrasing; update references in tasks
 
    *Completeness:*
    - Empty or placeholder sections → Fill in content derived from proposal and design context
    - Missing scenarios → Add meaningful scenarios covering happy path and edge cases
+   - Requirements with zero task coverage → Add a task that addresses the requirement, placed in buildable order
 
    *Validity:*
-   - Non-testable requirements → Rewrite with measurable/observable criteria while preserving intent
+   - Non-testable requirements / vague qualifiers → Rewrite with measurable/observable criteria while preserving intent (e.g., "fast" → "responds within 200ms under normal load")
+   - Unresolved placeholders → Replace with concrete content derived from context, or ask user if unclear
 
    *Feasibility:*
    - Design proposes patterns inconsistent with codebase → Update design to follow established patterns, noting the convention observed
@@ -127,6 +132,8 @@ After `/opsx-audit` identifies issues in a change's artifacts (proposal, design,
    - Tasks without spec coverage → Add a note linking to relevant requirement, or flag as implementation detail
    - New dependencies introduced → No fix needed, but note in tasks if installation step is missing
    - Trivially fine-grained tasks → Merge into parent task
+   - Terminology drift → Standardize on the canonical term (first-used or most precise) across all artifacts
+   - Minor duplications → Consolidate if straightforward; leave if they serve different contexts
 
    Present the full remediation plan to the user before applying any changes.
 

@@ -55,6 +55,8 @@ Apply audit findings and recommendations to an OpenSpec change's artifacts.
 
 5. **Plan remediation from audit findings**
 
+   Parse findings by their stable IDs (AC-1, CM-1, etc.) from the audit report.
+
    For each audit finding, determine the appropriate fix:
 
    **Errors (must fix):**
@@ -83,13 +85,16 @@ Apply audit findings and recommendations to an OpenSpec change's artifacts.
 
    *Accuracy:*
    - Referenced source file does not exist → Update path references or remove stale refs
+   - Near-duplicate requirements → Consolidate, keeping the more precise phrasing
 
    *Completeness:*
    - Empty or placeholder sections → Fill in content based on proposal context
    - Missing scenarios → Add meaningful scenarios
+   - Requirements with zero task coverage → Add a task addressing the requirement
 
    *Validity:*
-   - Non-testable requirements → Rewrite with measurable/observable criteria
+   - Non-testable requirements / vague qualifiers → Rewrite with measurable criteria (e.g., "fast" → "responds within 200ms")
+   - Unresolved placeholders → Replace with concrete content or ask user
 
    *Feasibility:*
    - Pattern inconsistency with codebase → Update design to follow established conventions
@@ -104,6 +109,8 @@ Apply audit findings and recommendations to an OpenSpec change's artifacts.
    - Tasks without spec coverage → Add note or link to relevant requirement
    - New dependencies → Note in tasks if installation step is missing
    - Trivially fine-grained tasks → Merge into parent task
+   - Terminology drift → Standardize on canonical term across artifacts
+   - Minor duplications → Consolidate if straightforward
 
    Present the remediation plan to the user before applying.
 

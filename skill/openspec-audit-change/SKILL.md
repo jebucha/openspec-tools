@@ -1,11 +1,11 @@
 ---
 name: openspec-audit-change
-description: Audit an existing change proposal for accuracy, completeness, validity, and feasibility before implementation. Use after opsx-propose to review generated artifacts.
+description: Audit an existing change proposal for accuracy, completeness, validity, feasibility, and coherence before implementation. Use after opsx-propose to review generated artifacts.
 license: MIT
 compatibility: Requires openspec CLI.
 metadata:
   author: jebucha
-  version: "1.1"
+  version: "1.2"
 ---
 
 Audit an existing change proposal for quality issues before implementation.
@@ -20,6 +20,10 @@ I'll evaluate the change artifacts for:
 ---
 
 **Input**: The argument after `/opsx-audit` is the change name (kebab-case). If omitted, check if it can be inferred from conversation context. If vague or ambiguous, prompt for available changes.
+
+**Output Constraints**:
+- Cap findings at **50 total**. If more are detected, include the top 50 by severity (Errors first, then Warnings, then Info) and add an overflow summary line: "N additional findings omitted (X warnings, Y info)."
+- Assign each finding a **stable ID** prefixed by category: `AC-1` (Accuracy), `CM-1` (Completeness), `VL-1` (Validity), `FS-1` (Feasibility), `CO-1` (Coherence). These IDs are used by `/opsx-apply-audit` to reference specific findings.
 
 **Steps**
 
@@ -72,9 +76,22 @@ I'll evaluate the change artifacts for:
    - Look for requirements in different specs that address the same behavior with different rules
    - Compare requirement descriptions and scenarios for logical contradictions
 
+   **4d. Duplication detection**
+   - Compare requirements across spec files for near-duplicates — requirements that describe the same behavior in different words
+   - Compare scenarios for functional overlap (different wording, same test)
+   - Flag the lower-quality or less-specific phrasing for consolidation
+   - Look for duplicated tasks in tasks.md that describe the same work
+
+   **4e. Terminology drift**
+   - Track key domain terms across all artifacts (proposal, design, specs, tasks)
+   - Flag when the same concept is named differently across files (e.g., "user" in proposal, "account" in design, "member" in specs)
+   - Flag when the same term is used with different meanings across artifacts
+   - Note the first-used term as the canonical reference
+
    Report each finding with:
    - **Error**: Missing spec for listed capability, contradictory specs
-   - **Warning**: Referenced source file does not exist
+   - **Warning**: Referenced source file does not exist, near-duplicate requirements
+   - **Info**: Terminology drift, minor duplications
 
 5. **Run Completeness Checks**
 
@@ -90,29 +107,34 @@ I'll evaluate the change artifacts for:
    - Flag requirements with no scenarios
 
    **5c. Task-to-spec coverage**
-   - Parse tasks from tasks.md (lines matching `- [ ]` or `- [x]`)
-   - For each task, determine if a spec requirement covers it
-   - Flag tasks that appear unrelated to any spec requirement
+   - Parse all requirements from spec files (build a requirements inventory)
+   - Parse all tasks from tasks.md (lines matching `- [ ]` or `- [x]`)
+   - Map each task to one or more requirements by keyword match, explicit reference, or semantic alignment
+   - Map each requirement to its covering task(s)
+   - Flag requirements with zero associated tasks
+   - Flag tasks with no mapped requirement (may be implementation detail — use Info)
 
    **5d. Empty or placeholder sections**
    - Check each artifact for sections that are present but contain only:
      - Empty content (header with no body text before next header)
-     - Placeholder text like `<!-- ... -->`, `TBD`, `TODO`, `<description>`
+     - Placeholder text like `<!-- ... -->`, `TBD`, `TODO`, `TKTK`, `???`, `<placeholder>`
    - Flag incomplete sections
 
    Report each finding with:
    - **Error**: Missing required artifact entirely
-   - **Warning**: Missing scenarios, empty sections
+   - **Warning**: Missing scenarios, empty sections, requirements with zero task coverage
    - **Info**: Tasks without clear spec coverage
 
 6. **Run Validity Checks**
 
    Evaluate whether artifacts follow structural conventions and contain well-formed content.
 
-   **6a. Non-testable requirements**
+   **6a. Non-testable requirements (ambiguity detection)**
    - Review each requirement for testability
-   - A requirement is non-testable if it cannot be verified by observable behavior (e.g., "the system should be fast", "the code should be clean")
-   - Flag requirements lacking measurable or observable criteria
+   - A requirement is non-testable if it cannot be verified by observable behavior
+   - Flag vague qualifiers lacking measurable criteria: "fast", "scalable", "secure", "intuitive", "robust", "efficient", "clean", "simple", "user-friendly", "performant"
+   - Flag requirements with verbs but missing object or measurable outcome (e.g., "the system should handle errors" — which errors? what constitutes handling?)
+   - Flag unresolved placeholders: `TODO`, `TBD`, `TKTK`, `???`, `<placeholder>`
 
    **6b. Task dependency chains**
    - If tasks reference other tasks by number (e.g., "depends on 2.1"), verify the referenced task exists
@@ -125,7 +147,7 @@ I'll evaluate the change artifacts for:
 
    Report each finding with:
    - **Error**: Broken task dependencies
-   - **Warning**: Non-testable requirements
+   - **Warning**: Non-testable requirements, vague qualifiers, unresolved placeholders
    - **Info**: Naming convention violations
 
 7. **Run Feasibility Checks**
@@ -212,27 +234,24 @@ I'll evaluate the change artifacts for:
 
    ---
 
-   ### Accuracy
+   ### Findings
 
-   [List findings, prefixed with severity]
-   - **[Error]** <description> — <evidence>
-   - **[Warning]** <description> — <evidence>
+   | ID | Category | Severity | Description | Evidence |
+   |----|----------|----------|-------------|----------|
+   | AC-1 | Accuracy | Error | Missing spec for `pdf-export` | Listed in proposal "New Capabilities" but no file at `specs/pdf-export/spec.md` |
+   | CM-1 | Completeness | Error | Requirement has no scenarios | `specs/csv-export/spec.md` → "User can filter exports" |
+   | ... | ... | ... | ... | ... |
 
-   ### Completeness
+   ### Coverage Metrics
 
-   [List findings]
-
-   ### Validity
-
-   [List findings]
-
-   ### Feasibility
-
-   [List findings]
-
-   ### Coherence
-
-   [List findings]
+   | Metric | Value |
+   |--------|-------|
+   | Total requirements | <count> |
+   | Total tasks | <count> |
+   | Requirements with ≥1 task | <count> (<percent>%) |
+   | Tasks with mapped requirement | <count> (<percent>%) |
+   | Duplications found | <count> |
+   | Ambiguities found | <count> |
 
    ---
 
@@ -281,6 +300,7 @@ I'll evaluate the change artifacts for:
 ## Audit Report: add-user-auth
 
 **Schema:** spec-driven
+**Model:** claude-opus
 **Artifacts checked:** proposal.md, design.md, specs/user-auth/spec.md, tasks.md
 
 ### Summary
@@ -288,9 +308,23 @@ I'll evaluate the change artifacts for:
 - Warnings: 0
 - Info: 2
 
-### Coherence
-- **[Info]** Task 3.2 has no direct spec requirement — may be implementation detail
-- **[Info]** New dependency `argon2` will be introduced (not currently in package.json)
+### Findings
+
+| ID | Category | Severity | Description | Evidence |
+|----|----------|----------|-------------|----------|
+| CO-1 | Coherence | Info | Task has no direct spec requirement | Task 3.2 — may be implementation detail |
+| FS-1 | Feasibility | Info | New dependency introduced | `argon2` not in current package.json |
+
+### Coverage Metrics
+
+| Metric | Value |
+|--------|-------|
+| Total requirements | 5 |
+| Total tasks | 7 |
+| Requirements with ≥1 task | 5 (100%) |
+| Tasks with mapped requirement | 6 (86%) |
+| Duplications found | 0 |
+| Ambiguities found | 0 |
 
 ### Verdict
 Ready for implementation.
@@ -301,60 +335,51 @@ Ready for implementation.
 ## Audit Report: add-data-export
 
 **Schema:** spec-driven
+**Model:** claude-opus
 **Artifacts checked:** proposal.md, design.md, specs/csv-export/spec.md, tasks.md
 
 ### Summary
-- Errors: 4
-- Warnings: 3
-- Info: 1
+- Errors: 5
+- Warnings: 4
+- Info: 2
 
-### Accuracy
-- **[Error]** Capability `pdf-export` listed in proposal but no spec file found at `specs/pdf-export/spec.md`
+### Findings
 
-### Completeness
-- **[Error]** Requirement "User can filter exports" has no scenarios
-- **[Warning]** Section "Goals / Non-Goals" in design.md is empty
+| ID | Category | Severity | Description | Evidence |
+|----|----------|----------|-------------|----------|
+| AC-1 | Accuracy | Error | Missing spec for listed capability | `pdf-export` in proposal but no `specs/pdf-export/spec.md` |
+| AC-2 | Accuracy | Warning | Near-duplicate requirements | "Export data as CSV" (spec L12) ≈ "Generate CSV file from data" (spec L34) |
+| AC-3 | Accuracy | Info | Terminology drift | "export job" (design) vs "export task" (proposal) vs "export operation" (spec) |
+| CM-1 | Completeness | Error | Requirement has no scenarios | "User can filter exports" in `specs/csv-export/spec.md` |
+| CM-2 | Completeness | Warning | Requirement has zero task coverage | "Export supports pagination" has no associated task |
+| CM-3 | Completeness | Warning | Empty section | "Goals / Non-Goals" in design.md |
+| VL-1 | Validity | Warning | Vague qualifier in requirement | "Export should be fast" — no measurable criteria |
+| FS-1 | Feasibility | Error | Design references non-existent symbol | `ExportService.generatePdf()` — file exists but only has `exportData()` |
+| FS-2 | Feasibility | Info | New dependency | `puppeteer` not in package.json |
+| CO-1 | Coherence | Error | Task ordering violation | Task 2 uses `src/templates/base.ts` created in Task 5 |
+| CO-2 | Coherence | Error | Design exceeds proposal scope | "notification system" not in proposal |
 
-### Feasibility
-- **[Error]** Design references `ExportService.generatePdf()` in `src/services/export.ts` — file exists but no `ExportService` class found; only `exportData()` function exists
-- **[Warning]** Design proposes class-based service pattern but codebase uses functional modules exclusively
+### Coverage Metrics
 
-### Coherence
-- **[Error]** Task 2 ("Add PDF template rendering") depends on `src/templates/base.ts` which is created in Task 5
-- **[Warning]** Design includes a "notification system" for export completion — not mentioned in proposal scope
-- **[Warning]** No error handling tasks for the new S3 upload path introduced in design
-- **[Info]** Task 4.1 ("add semicolon to line 42") is trivially fine-grained
+| Metric | Value |
+|--------|-------|
+| Total requirements | 8 |
+| Total tasks | 12 |
+| Requirements with ≥1 task | 6 (75%) |
+| Tasks with mapped requirement | 10 (83%) |
+| Duplications found | 1 |
+| Ambiguities found | 1 |
 
 ### Verdict
 Cannot proceed to implementation. Resolve errors first.
-```
-
-**Audit with only warnings:**
-```
-## Audit Report: add-cli-flags
-
-**Schema:** spec-driven
-**Artifacts checked:** proposal.md, design.md, specs/cli-flags/spec.md, tasks.md
-
-### Summary
-- Errors: 0
-- Warnings: 2
-- Info: 0
-
-### Feasibility
-- **[Warning]** Design proposes using `commander` option chaining but current CLI uses `yargs` — pattern mismatch
-
-### Coherence
-- **[Warning]** Requirement "flags are validated before execution" has no clear design mechanism described
-
-### Verdict
-Can proceed with caution. Consider addressing warnings.
 ```
 
 **Guardrails**
 
 - **Read-only** — Never modify artifacts during audit. Flag issues; don't fix them.
 - **Evidence-based** — Every finding must include specific evidence (file path, line reference, quoted text)
+- **Stable IDs** — Finding IDs must be deterministic. Same input should produce same IDs on re-run.
+- **Capped output** — Maximum 50 findings. Prioritize by severity. Summarize overflow.
 - **Scope to referenced files** — When checking file existence, only check files explicitly mentioned in artifacts, not the entire codebase
 - **Don't be prescriptive** — Focus on structural issues and inconsistencies. Use Info level for subjective observations
 - **Handle missing artifacts gracefully** — If an artifact doesn't exist, note it but continue auditing what's available
@@ -363,3 +388,5 @@ Can proceed with caution. Consider addressing warnings.
 - **Feasibility checks are best-effort** — Reading source files to verify design claims is valuable but not exhaustive. Check the specific files and symbols referenced; don't audit the entire codebase.
 - **Security checks are contextual** — Only apply security surface checks (8d) when the change touches auth, user input, data storage, external communication, or secrets. Don't flag security on purely cosmetic or refactoring changes.
 - **Pattern checks require evidence** — When flagging pattern inconsistency, cite the existing files you read and the specific pattern observed. Don't assert conventions without checking.
+- **Duplication requires semantic overlap** — Don't flag requirements as duplicates just because they share a few words. They must describe functionally overlapping behavior.
+- **Terminology drift is cross-file only** — Don't flag term variations within a single file. Only flag when different artifacts use different terms for the same concept.
