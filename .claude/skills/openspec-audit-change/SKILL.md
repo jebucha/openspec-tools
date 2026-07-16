@@ -264,7 +264,39 @@ I'll evaluate the change artifacts for:
    - If only info or clean: "Ready for implementation."
    - If no artifacts found: "No artifacts to audit. Create the change first."
 
-10. **Persist the audit report**
+10. **Detect regressions from prior resolved audits**
+
+    Before persisting the new audit report, check if any prior audits in `openspec/changes/<name>/audits/` have been resolved. If so, compare the new findings against previously resolved findings to detect regressions.
+
+    **10a. Parse resolved findings from prior audits**
+    - Look in `openspec/changes/<name>/audits/` for audit files that have a `## Resolved` header
+    - From each resolved audit, extract the finding IDs listed under the `### Resolved` section (e.g., `- AC-1: ...`)
+    - Build a set of resolved finding IDs mapped to their source audit filename
+
+    **10b. Compare against new findings**
+    - For each finding in the new audit report, check if its stable ID (e.g., `AC-1`) appears in the resolved findings set
+    - A match indicates a regression — the same issue was fixed but has reappeared
+
+    **10c. Generate Regressions section**
+    - If any regressions are found, insert a `### Regressions` section in the audit report output, between `### Findings` and `### Coverage Metrics`
+    - Format as a table:
+
+    ```
+    ### Regressions
+
+    | ID | Description | Source Audit |
+    |----|-------------|--------------|
+    | AC-1 | Missing spec for `pdf-export` | `2026-07-09T15-42-claude-opus.md` — was resolved, reappeared. Artifacts may have been edited outside the workflow. |
+    ```
+
+    - Classify each regression as a **Warning** severity — not an Error. The user may have intentionally reverted a fix.
+    - Include regressions in the overall warning count in the `### Summary` section
+    - If no regressions are found, skip the section entirely
+
+    **10d. No prior resolved audits**
+    - If no audits with `## Resolved` headers exist, skip regression detection entirely
+
+11. **Persist the audit report**
 
     Save the structured output to a file within the change directory:
 
@@ -284,7 +316,23 @@ I'll evaluate the change artifacts for:
 
     Announce: "Audit saved to `<path>`"
 
-11. **Offer follow-up actions**
+    **11a. Auto-supersede older audit files**
+
+    After writing the new audit file, check for existing audit files in the same `audits/` directory. For each file whose timestamp in the filename is older than the new audit's timestamp:
+
+    - Read the existing file
+    - Prepend a supersede header: `## Superseded: <new-filename> (<N> errors, <N> warnings)\n\n`
+    - The `<N> errors, <N> warnings` summary is parsed from the new audit's `### Summary` section
+    - Write the file back with the supersede header prepended before all existing content (including any existing `## Resolved` or `## Superseded` headers)
+    - This preserves the full lifecycle chain — headers stack, with the newest supersede at the top
+
+    **11b. Header stacking**
+
+    When prepending the supersede header, always insert it at the very beginning of the file, before any existing headers. This ensures the lifecycle chain reads top-to-bottom: newest supersede → older supersede → resolved → original report.
+
+    Announce: "Superseded N older audit file(s)" (only if any were superseded)
+
+12. **Offer follow-up actions**
 
     After displaying the report, offer:
     - "Want me to help fix any of these findings?"
@@ -390,3 +438,7 @@ Cannot proceed to implementation. Resolve errors first.
 - **Pattern checks require evidence** — When flagging pattern inconsistency, cite the existing files you read and the specific pattern observed. Don't assert conventions without checking.
 - **Duplication requires semantic overlap** — Don't flag requirements as duplicates just because they share a few words. They must describe functionally overlapping behavior.
 - **Terminology drift is cross-file only** — Don't flag term variations within a single file. Only flag when different artifacts use different terms for the same concept.
+- **Regression detection is best-effort** — Parse resolved findings from prior audits by matching stable IDs. If a prior audit's resolution header is malformed or missing, skip regression detection for that file rather than failing.
+- **Supersede is timestamp-based** — Compare timestamps embedded in audit filenames (e.g., `2026-07-09T15-42`) to determine which audits are older. Only supersede files with strictly older timestamps.
+- **Header parsing is position-sensitive** — When reading `## Resolved` or `## Superseded` headers from audit files, only check at the very start of the file. Do not match these patterns in the body of the audit report.
+- **Backward compatible** — Audit files without lifecycle headers function normally. Regression detection and supersede logic gracefully handle legacy files.
