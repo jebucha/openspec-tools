@@ -51,7 +51,7 @@ deploy_opencode() {
     echo "  [opencode] command: $(basename "$cmd")"
   done
 
-  for skill_dir in "$SCRIPT_DIR"/skill/*/; do
+  for skill_dir in "$SCRIPT_DIR"/skills/*/; do
     [[ -d "$skill_dir" ]] || continue
     skill_name="$(basename "$skill_dir")"
     mkdir -p "$TARGET/.opencode/skills/$skill_name"
@@ -69,7 +69,7 @@ deploy_kiro() {
     echo "  [kiro] prompt: ${base}.prompt.md"
   done
 
-  for skill_dir in "$SCRIPT_DIR"/skill/*/; do
+  for skill_dir in "$SCRIPT_DIR"/skills/*/; do
     [[ -d "$skill_dir" ]] || continue
     skill_name="$(basename "$skill_dir")"
     mkdir -p "$TARGET/.kiro/skills/$skill_name"
@@ -93,7 +93,7 @@ deploy_claude() {
   done
 
   # Claude CLI: skills use same structure as opencode
-  for skill_dir in "$SCRIPT_DIR"/skill/*/; do
+  for skill_dir in "$SCRIPT_DIR"/skills/*/; do
     [[ -d "$skill_dir" ]] || continue
     skill_name="$(basename "$skill_dir")"
     mkdir -p "$TARGET/.claude/skills/$skill_name"
