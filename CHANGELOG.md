@@ -28,7 +28,7 @@
 - **README.md** — Top-level project documentation.
 
 ### Changed
-- **deploy.sh** — Now dynamically deploys all commands from `command/` and all skills from `skill/` (no longer hardcoded). Supports Kiro (`.kiro/prompts/` + `.kiro/skills/`) in addition to opencode.
+- **deploy.sh** — Now dynamically deploys all commands from `commands/` and all skills from `skill/` (no longer hardcoded). Supports Kiro (`.kiro/prompts/` + `.kiro/skills/`) in addition to opencode.
 - **openspec-audit-change skill** — Upgraded from 3 audit categories (accuracy, completeness, validity) to 5 (added feasibility, coherence). Now persists reports to file. Version bumped to 1.1.
 - **opsx-apply-audit** — Loads audit findings from persisted files first, falls back to session context. Supports selecting from multiple saved audits.
 

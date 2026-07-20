@@ -27,8 +27,8 @@ Commands are slash-command definitions that invoke the corresponding skill.
 
 | File | Description |
 |------|-------------|
-| `command/opsx-audit.md` | Audit a change proposal for quality issues before implementation |
-| `command/opsx-apply-audit.md` | Apply audit findings and recommendations to change artifacts |
+| `commands/opsx-audit.md` | Audit a change proposal for quality issues before implementation |
+| `commands/opsx-apply-audit.md` | Apply audit findings and recommendations to change artifacts |
 
 Commands in `.opencode/commands/` (deployed, includes all project commands):
 | File | Description |
@@ -96,7 +96,7 @@ Deploy to the current directory:
 
 ```
 openspec-tools/
-├── command/                    # Source command definitions (deployed by deploy.sh)
+├── commands/                   # Source command definitions (deployed by deploy.sh)
 │   ├── opsx-audit.md
 │   └── opsx-apply-audit.md
 ├── skill/                      # Source skill definitions (deployed by deploy.sh)

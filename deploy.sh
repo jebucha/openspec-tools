@@ -45,7 +45,7 @@ fi
 
 deploy_opencode() {
   mkdir -p "$TARGET/.opencode/commands"
-  for cmd in "$SCRIPT_DIR"/command/*.md; do
+  for cmd in "$SCRIPT_DIR"/commands/*.md; do
     [[ -f "$cmd" ]] || continue
     cp "$cmd" "$TARGET/.opencode/commands/"
     echo "  [opencode] command: $(basename "$cmd")"
@@ -62,7 +62,7 @@ deploy_opencode() {
 
 deploy_kiro() {
   mkdir -p "$TARGET/.kiro/prompts"
-  for cmd in "$SCRIPT_DIR"/command/*.md; do
+  for cmd in "$SCRIPT_DIR"/commands/*.md; do
     [[ -f "$cmd" ]] || continue
     base="$(basename "$cmd" .md)"
     cp "$cmd" "$TARGET/.kiro/prompts/${base}.prompt.md"
@@ -81,7 +81,7 @@ deploy_kiro() {
 deploy_claude() {
   # Claude CLI: commands use opsx-audit.md → .claude/commands/opsx/audit.md
   # The "opsx-" prefix becomes the subdirectory, remainder becomes the filename
-  for cmd in "$SCRIPT_DIR"/command/*.md; do
+  for cmd in "$SCRIPT_DIR"/commands/*.md; do
     [[ -f "$cmd" ]] || continue
     base="$(basename "$cmd" .md)"
     # Split on first hyphen: "opsx-apply-audit" → prefix="opsx", rest="apply-audit"
