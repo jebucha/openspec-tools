@@ -29,6 +29,7 @@ Commands are slash-command definitions that invoke the corresponding skill.
 |------|-------------|
 | `commands/opsx-audit.md` | Audit a change proposal for quality issues before implementation |
 | `commands/opsx-apply-audit.md` | Apply audit findings and recommendations to change artifacts |
+| `commands/opsx-security-audit.md` | Run a comprehensive security audit on a target codebase |
 
 Commands in `.opencode/commands/` (deployed, includes all project commands):
 | File | Description |
@@ -39,6 +40,7 @@ Commands in `.opencode/commands/` (deployed, includes all project commands):
 | `opsx-apply.md` | Implement code changes from tasks |
 | `opsx-explore.md` | Explore ideas and investigate problems |
 | `opsx-archive.md` | Archive a completed change |
+| `opsx-security-audit.md` | Run a comprehensive security audit on a target codebase |
 
 ## Skills
 
@@ -48,6 +50,7 @@ Skills contain the detailed step-by-step logic that agents follow when a command
 |-------|---------|
 | `skill/openspec-audit-change/` | Structural + semantic audit of change artifacts (accuracy, completeness, validity, feasibility, coherence) |
 | `skill/openspec-apply-audit/` | Remediation engine — resolves audit findings by modifying artifacts |
+| `skills/security-audit/` | Comprehensive security audit: reconnaissance, threat hunting, validation, and reporting |
 
 Additional skills in `.kiro/skills/` (deployed):
 | Skill | Purpose |
@@ -56,6 +59,7 @@ Additional skills in `.kiro/skills/` (deployed):
 | `openspec-apply-change/` | Implements code changes by working through tasks |
 | `openspec-explore/` | Interactive exploration and requirement clarification |
 | `openspec-archive-change/` | Archives completed changes with spec sync |
+| `security-audit/` | Comprehensive security audit of a target codebase |
 
 ## Installation
 
