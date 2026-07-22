@@ -81,6 +81,7 @@ Auto-detects the target environment and deploys accordingly:
 - `.opencode/` present → commands to `.opencode/commands/`, skills to `.opencode/skills/`
 - `.kiro/` present → prompts to `.kiro/prompts/`, skills to `.kiro/skills/`
 - `.claude/` present → commands to `.claude/commands/opsx/`, skills to `.claude/skills/`
+- `.gemini/` present → commands (converted to TOML) to `.gemini/commands/opsx/`, skills to `.gemini/skills/`
 - Multiple present → deploys to all detected environments
 
 Force a specific target with flags:
@@ -88,6 +89,7 @@ Force a specific target with flags:
 ./deploy.sh --kiro /path/to/project
 ./deploy.sh --opencode /path/to/project
 ./deploy.sh --claude /path/to/project
+./deploy.sh --gemini /path/to/project
 ```
 
 Deploy to the current directory:
@@ -114,6 +116,9 @@ openspec-tools/
 │   └── skills/
 ├── .kiro/                      # Kiro-specific prompts and skills
 │   ├── prompts/
+│   └── skills/
+├── .gemini/                    # Gemini-specific commands (TOML) and skills
+│   ├── commands/
 │   └── skills/
 ├── openspec/                   # OpenSpec config and change history
 │   ├── config.yaml

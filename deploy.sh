@@ -12,6 +12,7 @@ for arg in "$@"; do
     --kiro)     FORCE_ENV="kiro" ;;
     --opencode) FORCE_ENV="opencode" ;;
     --claude)   FORCE_ENV="claude" ;;
+    --gemini)   FORCE_ENV="gemini" ;;
     *)          TARGET="$arg" ;;
   esac
 done
@@ -27,19 +28,21 @@ else
   [[ -d "$TARGET/.opencode" ]] && ENVS="opencode"
   [[ -d "$TARGET/.kiro" ]]     && ENVS="${ENVS:+$ENVS }kiro"
   [[ -d "$TARGET/.claude" ]]   && ENVS="${ENVS:+$ENVS }claude"
+  [[ -d "$TARGET/.gemini" ]]   && ENVS="${ENVS:+$ENVS }gemini"
 fi
 
 if [[ -z "$ENVS" ]]; then
   echo "Error: No supported environment found in $TARGET"
   echo ""
-  echo "Expected one of: .opencode/, .kiro/, .claude/"
+  echo "Expected one of: .opencode/, .kiro/, .claude/, .gemini/"
   echo ""
   echo "Initialize one of:"
   echo "  openspec init     → creates .opencode/"
   echo "  kiro init         → creates .kiro/"
   echo "  mkdir .claude     → creates .claude/"
+  echo "  mkdir .gemini     → creates .gemini/"
   echo ""
-  echo "Or force a target: --opencode, --kiro, --claude"
+  echo "Or force a target: --opencode, --kiro, --claude, --gemini"
   exit 1
 fi
 
@@ -102,12 +105,53 @@ deploy_claude() {
   done
 }
 
+deploy_gemini() {
+  # Deploy commands: convert .md to .toml
+  mkdir -p "$TARGET/.gemini/commands/opsx"
+  for cmd in "$SCRIPT_DIR"/commands/*.md; do
+    [[ -f "$cmd" ]] || continue
+    base="$(basename "$cmd" .md)"
+    # Strip "opsx-" prefix from filename
+    name="${base#opsx-}"
+    # Extract description: first non-empty, non-heading line
+    content="$(cat "$cmd")"
+    description=""
+    while IFS= read -r line; do
+      [[ -z "$line" ]] && continue
+      [[ "$line" =~ ^[#[:space:]] ]] && continue
+      description="$line"
+      break
+    done <<< "$content"
+    # Escape triple quotes in content for valid TOML
+    escaped_content="${content//\"\"\"/\\\"\\\"\\\"}"
+    # Write TOML file
+    cat > "$TARGET/.gemini/commands/opsx/${name}.toml" << TOML_EOF
+description = "${description}"
+
+prompt = """
+${escaped_content}
+"""
+TOML_EOF
+    echo "  [gemini] command: opsx/${name}.toml"
+  done
+
+  # Deploy skills: same structure as opencode
+  for skill_dir in "$SCRIPT_DIR"/skills/*/; do
+    [[ -d "$skill_dir" ]] || continue
+    skill_name="$(basename "$skill_dir")"
+    mkdir -p "$TARGET/.gemini/skills/$skill_name"
+    cp "$skill_dir"* "$TARGET/.gemini/skills/$skill_name/" 2>/dev/null || true
+    echo "  [gemini] skill: $skill_name"
+  done
+}
+
 # Deploy to each detected/forced environment
 for env in $ENVS; do
   case "$env" in
     opencode) deploy_opencode ;;
     kiro)     deploy_kiro ;;
     claude)   deploy_claude ;;
+    gemini)   deploy_gemini ;;
   esac
 done
 
