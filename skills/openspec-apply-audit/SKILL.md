@@ -47,13 +47,12 @@ After `/opsx-audit` identifies issues in a change's artifacts (proposal, design,
     **3a. Check for persisted audit files**
     - Look in `openspec/changes/<name>/audits/` for saved audit reports
     - Use glob to find all `.md` files in the directory
-    - **Derive state for each audit file:**
-      - **Pending**: No `## Resolved` header at the start of the file, and no newer audit file exists in the same directory (newer = filename with later timestamp)
-      - **Resolved**: Has a `## Resolved` header at the start, and no newer audit file exists
-      - **Superseded**: Has a `## Superseded` header at the start pointing to a newer audit file
-      - Legacy audit files without any lifecycle headers are treated as **Pending**
-    - **Prefer Pending audits.** If a Pending audit exists, select it automatically.
-    - If no Pending audit exists but Resolved or Superseded audits exist, inform the user: "No pending audits found. All existing audits are resolved or superseded." Offer to run a new audit: "Want me to run `/opsx-audit <name>` to generate a fresh audit?"
+     - **Derive state for each audit file:**
+       - **Pending**: No `## Resolved` header at the start of the file
+       - **Resolved**: Has a `## Resolved` header at the start
+       - Legacy audit files without any lifecycle headers are treated as **Pending**
+     - **Prefer Pending audits.** If a Pending audit exists, select it automatically.
+     - If no Pending audit exists but Resolved audits exist, inform the user: "No pending audits found. All existing audits are resolved." Offer to run a new audit: "Want me to run `/opsx-audit <name>` to generate a fresh audit?"
     - If multiple Pending audits exist, list them with timestamp, model, and summary (errors/warnings count from each), then use the **AskUserQuestion tool** to let the user select
     - If exactly one audit exists and it is Pending, use it automatically
 
@@ -224,7 +223,7 @@ After `/opsx-audit` identifies issues in a change's artifacts (proposal, design,
 
     Read the audit file, prepend the resolution header, and write it back. The original audit report content must remain unchanged below the `---` separator.
 
-    **Important:** Parse lifecycle headers only at the very start of the file. The resolution header is prepended before any existing content, including any existing `## Superseded` headers. This preserves the full lifecycle chain.
+    **Important:** Parse lifecycle headers only at the very start of the file. The resolution header is prepended before any existing content. This preserves the full lifecycle chain.
 
     Announce: "Resolution header written to `<path>`"
 
@@ -306,9 +305,9 @@ What would you like to do?
 - Only address findings from the audit — don't expand scope to unrelated improvements
 - Preserve all existing content that isn't directly related to a finding
 - Use existing spec files as style reference when creating new ones
-- **Audit state is derived, not stored** — determine Pending/Resolved/Superseded from headers and timestamps, never from explicit status fields
+- **Audit state is derived, not stored** — determine Pending/Resolved from headers, never from explicit status fields
 - **Backward compatible** — audit files without lifecycle headers are always treated as Pending
-- **Header parsing is position-sensitive** — only parse `## Resolved` and `## Superseded` headers at the very start of the file; do not match these patterns in the body of the audit report
+- **Header parsing is position-sensitive** — only parse `## Resolved` headers at the very start of the file; do not match these patterns in the body of the audit report
 - **Prepend-only mutations** — when writing a resolution header, always prepend to the file; never modify or delete existing content
 
 **Fluid Workflow Integration**

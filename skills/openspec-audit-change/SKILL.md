@@ -316,30 +316,14 @@ I'll evaluate the change artifacts for:
 
     Announce: "Audit saved to `<path>`"
 
-    **11a. Auto-supersede older audit files**
-
-    After writing the new audit file, check for existing audit files in the same `audits/` directory. For each file whose timestamp in the filename is older than the new audit's timestamp:
-
-    - Read the existing file
-    - Prepend a supersede header: `## Superseded: <new-filename> (<N> errors, <N> warnings)\n\n`
-    - The `<N> errors, <N> warnings` summary is parsed from the new audit's `### Summary` section
-    - Write the file back with the supersede header prepended before all existing content (including any existing `## Resolved` or `## Superseded` headers)
-    - This preserves the full lifecycle chain — headers stack, with the newest supersede at the top
-
-    **11b. Header stacking**
-
-    When prepending the supersede header, always insert it at the very beginning of the file, before any existing headers. This ensures the lifecycle chain reads top-to-bottom: newest supersede → older supersede → resolved → original report.
-
-    Announce: "Superseded N older audit file(s)" (only if any were superseded)
-
-12. **Offer follow-up actions**
+ 12. **Offer follow-up actions**
 
     After displaying the report, offer:
     - "Want me to help fix any of these findings?"
     - "Run `/opsx-apply-audit` to apply fixes to the artifacts."
     - "Run `/opsx-apply` to start implementing (if no blocking errors)."
     - "Run `/opsx-explore` to discuss the findings."
-    - "Run `/opsx-audit` again with a different model to compare."
+    - "Run `/opsx-audit` again with a different model to compare findings."
 
 **Output Examples**
 
@@ -439,6 +423,5 @@ Cannot proceed to implementation. Resolve errors first.
 - **Duplication requires semantic overlap** — Don't flag requirements as duplicates just because they share a few words. They must describe functionally overlapping behavior.
 - **Terminology drift is cross-file only** — Don't flag term variations within a single file. Only flag when different artifacts use different terms for the same concept.
 - **Regression detection is best-effort** — Parse resolved findings from prior audits by matching stable IDs. If a prior audit's resolution header is malformed or missing, skip regression detection for that file rather than failing.
-- **Supersede is timestamp-based** — Compare timestamps embedded in audit filenames (e.g., `2026-07-09T15-42`) to determine which audits are older. Only supersede files with strictly older timestamps.
-- **Header parsing is position-sensitive** — When reading `## Resolved` or `## Superseded` headers from audit files, only check at the very start of the file. Do not match these patterns in the body of the audit report.
-- **Backward compatible** — Audit files without lifecycle headers function normally. Regression detection and supersede logic gracefully handle legacy files.
+- **Header parsing is position-sensitive** — When reading `## Resolved` headers from audit files, only check at the very start of the file. Do not match these patterns in the body of the audit report.
+- **Backward compatible** — Audit files without lifecycle headers function normally. Regression detection gracefully handles legacy files.

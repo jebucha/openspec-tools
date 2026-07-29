@@ -222,19 +222,7 @@ After `/opsx-apply` implements a change, this skill independently verifies that 
 
     Announce: "Validation saved to `<path>`"
 
-    **12a. Auto-supersede older validation files**
-
-    After writing the new validation, check for existing validation files in the same `validations/` directory. For each file whose timestamp in the filename is older than the new validation's timestamp:
-
-    - Read the existing file
-    - Prepend: `## Superseded: <new-filename> (<N> errors, <N> warnings)\n\n`
-    - Parse `<N> errors, <N> warnings` from the new validation's `### Summary`
-    - Write the file back with the supersede header at the very beginning
-    - This preserves the lifecycle chain — headers stack, newest at top
-
-    Announce: "Superseded N older validation file(s)" (only if any were superseded)
-
-13. **Offer follow-up actions**
+ 13. **Offer follow-up actions**
 
     After displaying the report, offer:
     - "Want me to help fix any of these findings?"
@@ -328,9 +316,8 @@ After `/opsx-apply` implements a change, this skill independently verifies that 
 - **Code quality is best-effort** — Basic checks only. Don't replace linters or type checkers.
 - **Regression safety is best-effort** — Check public interfaces and callers. Don't perform exhaustive impact analysis.
 - **Test checks are structural** — Verify tests exist and cover scenarios. Don't run tests or judge test quality beyond coverage.
-- **Backward compatible** — Validation files without lifecycle headers function normally. Supersede logic gracefully handles legacy files.
-- **Header parsing is position-sensitive** — Only parse `## Resolved` and `## Superseded` headers at the very start of the file.
-- **Supersede is timestamp-based** — Compare timestamps in filenames to determine ordering. Only supersede strictly older files.
+- **Backward compatible** — Validation files without lifecycle headers function normally.
+- **Header parsing is position-sensitive** — Only parse `## Resolved` headers at the very start of the file.
 
 **Fluid Workflow Integration**
 

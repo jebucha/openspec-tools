@@ -92,10 +92,6 @@ The validation skill SHALL persist the structured report to a file for historica
 - **WHEN** validation completes
 - **THEN** the report is saved to `openspec/changes/<name>/validations/<timestamp>-<model>.md`
 
-#### Scenario: Older validations are superseded
-- **WHEN** a new validation is written and older validation files exist
-- **THEN** older files receive a `## Superseded` header pointing to the new validation
-
 ### Requirement: Validation produces structured verdict
 The validation skill SHALL produce a verdict based on findings.
 
