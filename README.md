@@ -5,21 +5,52 @@ Agent commands and skills for the [OpenSpec](https://openspec.dev) workflow. The
 ## Workflow
 
 ```
-/opsx-propose  →  /opsx-audit  →  /opsx-apply-audit  →  /opsx-apply  →  /opsx-archive
+/opsx-explore  →  /opsx-propose  →  /opsx-audit  →  /opsx-apply-audit  →  /opsx-apply  →  /opsx-validate  →  /opsx-archive
 ```
 
 | Step | Command | What it does |
 |------|---------|--------------|
-| 1 | `/opsx-propose` | Describe what you want to build; generates proposal, design, specs, and tasks |
-| 2 | `/opsx-audit` | Reviews artifacts for accuracy, completeness, validity, feasibility, and coherence |
-| 3 | `/opsx-apply-audit` | Applies audit findings — fixes errors and warnings in the artifacts |
-| 4 | `/opsx-apply` | Implements the actual code changes described in the tasks |
-| 5 | `/opsx-archive` | Archives the completed change with optional spec sync |
+| 1 | `/opsx-explore` | Thinking partner for exploring ideas, investigating problems, and clarifying requirements (recommended before proposing) |
+| 2 | `/opsx-propose` | Describe what you want to build; generates proposal, design, specs, and tasks |
+| 3 | `/opsx-audit` | Reviews artifacts for accuracy, completeness, validity, feasibility, and coherence |
+| 4 | `/opsx-apply-audit` | Applies audit findings — fixes errors and warnings in the artifacts |
+| 5 | `/opsx-apply` | Implements the actual code changes described in the tasks |
+| 6 | `/opsx-validate` | Validates implementation against proposal, specs, design, and audit findings |
+| 7 | `/opsx-archive` | Archives the completed change with optional spec sync |
 
-Additional:
-| Command | What it does |
-|---------|--------------|
-| `/opsx-explore` | Thinking partner for exploring ideas, investigating problems, and clarifying requirements |
+### Quality Gates
+
+Two critical quality gates protect against shipping flawed changes:
+
+- **Audit (step 3)**: Reviews the change artifacts before implementation begins. Catches scope gaps, missing specs, infeasible designs, and task ordering issues. Use `/opsx-apply-audit` to fix findings.
+- **Validate (step 6)**: Verifies the implementation matches what was planned. Checks spec compliance, test coverage, task completion, code quality, and regression safety.
+
+Both gates produce structured findings (errors, warnings, info) you can address before proceeding.
+
+### Looping Back
+
+When audit or validate finds issues, you can iterate without restarting:
+
+```
+         ┌─────────────────────────────────────────────┐
+         │                                             │
+         ▼                                             │
+propose ──→ audit ──→ apply-audit                     │
+         ↑        │                                   │
+         │        │ (errors/warnings)                 │
+         │        └───────────────────────────────────┘
+         │
+         ▼
+   apply ──→ validate ──→ archive
+              │
+              │ (errors/warnings)
+              ▼
+         fix issues, re-validate
+```
+
+- **Audit findings**: Run `/opsx-apply-audit` to fix artifacts, then re-audit with `/opsx-audit`
+- **Validate findings**: Fix the issues in code, then re-run `/opsx-validate`
+- **New requirements discovered**: Update artifacts with `/opsx-propose` or manual edits, then re-audit
 
 ## Commands
 
@@ -29,6 +60,7 @@ Commands are slash-command definitions that invoke the corresponding skill.
 |------|-------------|
 | `commands/opsx-audit.md` | Audit a change proposal for quality issues before implementation |
 | `commands/opsx-apply-audit.md` | Apply audit findings and recommendations to change artifacts |
+| `commands/opsx-validate.md` | Validate a completed change's implementation against its proposal, specs, and design |
 | `commands/opsx-security-audit.md` | Run a comprehensive security audit on a target codebase |
 
 Commands in `.opencode/commands/` (deployed, includes all project commands):
@@ -38,6 +70,7 @@ Commands in `.opencode/commands/` (deployed, includes all project commands):
 | `opsx-audit.md` | Audit change artifacts |
 | `opsx-apply-audit.md` | Fix artifacts based on audit findings |
 | `opsx-apply.md` | Implement code changes from tasks |
+| `opsx-validate.md` | Validate implementation against proposal, specs, and design |
 | `opsx-explore.md` | Explore ideas and investigate problems |
 | `opsx-archive.md` | Archive a completed change |
 | `opsx-security-audit.md` | Run a comprehensive security audit on a target codebase |
@@ -50,13 +83,15 @@ Skills contain the detailed step-by-step logic that agents follow when a command
 |-------|---------|
 | `skill/openspec-audit-change/` | Structural + semantic audit of change artifacts (accuracy, completeness, validity, feasibility, coherence) |
 | `skill/openspec-apply-audit/` | Remediation engine — resolves audit findings by modifying artifacts |
+| `skills/openspec-validate-change/` | Validates implementation against proposal, specs, design, and audit findings |
 | `skills/security-audit/` | Comprehensive security audit: reconnaissance, threat hunting, validation, and reporting |
 
-Additional skills in `.kiro/skills/` (deployed):
+Additional skills in `.opencode/skills/` (deployed):
 | Skill | Purpose |
 |-------|---------|
 | `openspec-propose/` | Generates proposal, design, specs, and tasks from user description |
 | `openspec-apply-change/` | Implements code changes by working through tasks |
+| `openspec-validate-change/` | Validates implementation against proposal, specs, design, and audit findings |
 | `openspec-explore/` | Interactive exploration and requirement clarification |
 | `openspec-archive-change/` | Archives completed changes with spec sync |
 | `security-audit/` | Comprehensive security audit of a target codebase |
@@ -147,6 +182,28 @@ Findings are categorized by severity:
 - **Warning** — Should be addressed. Proceed with caution.
 - **Info** — Awareness only. Optional to address.
 
+## Validation Dimensions
+
+The `/opsx-validate` command evaluates implementations across five dimensions:
+
+| Dimension | What it checks |
+|-----------|---------------|
+| **Spec compliance** | Are spec requirements satisfied by the actual code? |
+| **Test coverage** | Do tests exist for new requirements and edge cases? |
+| **Task completion** | Are all tasks completed and reflected in the codebase? |
+| **Code quality** | Are there obvious issues in changed files? |
+| **Regression safety** | Do changes break existing functionality patterns? |
+
+Findings are categorized by severity:
+- **Error** — Blocks readiness. Must be resolved before archiving.
+- **Warning** — Should be addressed. Proceed with caution.
+- **Info** — Awareness only. Optional to address.
+
+The verdict indicates readiness:
+- **Pass** — No errors; implementation validated, ready for archive.
+- **Conditional** — Only warnings; proceed with caution.
+- **Fail** — Errors exist; cannot proceed, resolve errors first.
+
 ## Audit Persistence
 
 Audit reports are saved as files within the change directory:
@@ -172,22 +229,28 @@ openspec/changes/add-user-auth/audits/
 ## Typical Session
 
 ```bash
-# 1. Propose a change
+# 1. Explore the problem (recommended)
+/opsx-explore "How should we handle user authentication?"
+
+# 2. Propose a change
 /opsx-propose add-user-auth
 
-# 2. Audit the generated artifacts
+# 3. Audit the generated artifacts
 /opsx-audit add-user-auth
 
-# 3. If findings exist, fix them
+# 4. If findings exist, fix them
 /opsx-apply-audit add-user-auth
-
-# 4. Re-audit to confirm clean (optional)
-/opsx-audit add-user-auth
 
 # 5. Implement the code
 /opsx-apply add-user-auth
 
-# 6. Archive when done
+# 6. Validate the implementation
+/opsx-validate add-user-auth
+
+# 7. If validation finds issues, fix them and re-validate
+#    (loop until clean)
+
+# 8. Archive when done
 /opsx-archive add-user-auth
 ```
 
