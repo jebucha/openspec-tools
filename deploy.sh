@@ -12,7 +12,10 @@ for arg in "$@"; do
     --kiro)     FORCE_ENV="kiro" ;;
     --opencode) FORCE_ENV="opencode" ;;
     --claude)   FORCE_ENV="claude" ;;
-    --gemini)   FORCE_ENV="gemini" ;;
+    --qwen)     FORCE_ENV="qwen" ;;
+    --*)        echo "Error: Unknown option '$arg'" >&2
+                echo "Valid options: --opencode, --kiro, --claude, --qwen" >&2
+                exit 1 ;;
     *)          TARGET="$arg" ;;
   esac
 done
@@ -28,21 +31,21 @@ else
   [[ -d "$TARGET/.opencode" ]] && ENVS="opencode"
   [[ -d "$TARGET/.kiro" ]]     && ENVS="${ENVS:+$ENVS }kiro"
   [[ -d "$TARGET/.claude" ]]   && ENVS="${ENVS:+$ENVS }claude"
-  [[ -d "$TARGET/.gemini" ]]   && ENVS="${ENVS:+$ENVS }gemini"
+  [[ -d "$TARGET/.qwen" ]]     && ENVS="${ENVS:+$ENVS }qwen"
 fi
 
 if [[ -z "$ENVS" ]]; then
   echo "Error: No supported environment found in $TARGET"
   echo ""
-  echo "Expected one of: .opencode/, .kiro/, .claude/, .gemini/"
+  echo "Expected one of: .opencode/, .kiro/, .claude/, .qwen/"
   echo ""
   echo "Initialize one of:"
   echo "  openspec init     → creates .opencode/"
   echo "  kiro init         → creates .kiro/"
   echo "  mkdir .claude     → creates .claude/"
-  echo "  mkdir .gemini     → creates .gemini/"
+  echo "  openspec init     → creates .qwen/"
   echo ""
-  echo "Or force a target: --opencode, --kiro, --claude, --gemini"
+  echo "Or force a target: --opencode, --kiro, --claude, --qwen"
   exit 1
 fi
 
@@ -105,43 +108,20 @@ deploy_claude() {
   done
 }
 
-deploy_gemini() {
-  # Deploy commands: convert .md to .toml
-  mkdir -p "$TARGET/.gemini/commands/opsx"
+deploy_qwen() {
+  mkdir -p "$TARGET/.qwen/commands"
   for cmd in "$SCRIPT_DIR"/commands/*.md; do
     [[ -f "$cmd" ]] || continue
-    base="$(basename "$cmd" .md)"
-    # Strip "opsx-" prefix from filename
-    name="${base#opsx-}"
-    # Extract description: first non-empty, non-heading line
-    content="$(cat "$cmd")"
-    description=""
-    while IFS= read -r line; do
-      [[ -z "$line" ]] && continue
-      [[ "$line" =~ ^[#[:space:]] ]] && continue
-      description="$line"
-      break
-    done <<< "$content"
-    # Escape triple quotes in content for valid TOML
-    escaped_content="${content//\"\"\"/\\\"\\\"\\\"}"
-    # Write TOML file
-    cat > "$TARGET/.gemini/commands/opsx/${name}.toml" << TOML_EOF
-description = "${description}"
-
-prompt = """
-${escaped_content}
-"""
-TOML_EOF
-    echo "  [gemini] command: opsx/${name}.toml"
+    cp "$cmd" "$TARGET/.qwen/commands/"
+    echo "  [qwen] command: $(basename "$cmd")"
   done
 
-  # Deploy skills: same structure as opencode
   for skill_dir in "$SCRIPT_DIR"/skills/*/; do
     [[ -d "$skill_dir" ]] || continue
     skill_name="$(basename "$skill_dir")"
-    mkdir -p "$TARGET/.gemini/skills/$skill_name"
-    cp "$skill_dir"* "$TARGET/.gemini/skills/$skill_name/" 2>/dev/null || true
-    echo "  [gemini] skill: $skill_name"
+    mkdir -p "$TARGET/.qwen/skills/$skill_name"
+    cp "$skill_dir"* "$TARGET/.qwen/skills/$skill_name/" 2>/dev/null || true
+    echo "  [qwen] skill: $skill_name"
   done
 }
 
@@ -151,7 +131,7 @@ for env in $ENVS; do
     opencode) deploy_opencode ;;
     kiro)     deploy_kiro ;;
     claude)   deploy_claude ;;
-    gemini)   deploy_gemini ;;
+    qwen)     deploy_qwen ;;
   esac
 done
 

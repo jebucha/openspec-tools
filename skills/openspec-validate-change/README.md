@@ -179,26 +179,7 @@ The validation can be run multiple times as implementation progresses:
 
 Multiple validations accumulate in the `validations/` directory with distinct timestamps. Older validations are automatically superseded by newer ones.
 
-## Files
 
-| File | Source location | Active (deployed) location | Purpose |
-|------|----------------|---------------------------|---------|
-| Slash-command prompt | `commands/opsx-validate.md` | `.opencode/commands/opsx-validate.md` | Makes `/opsx-validate` available as a CLI command |
-| Skill definition | `skills/openspec-validate-change/SKILL.md` | `.opencode/skills/openspec-validate-change/SKILL.md` | Full agent skill with step-by-step validation logic |
-
-## Deployment
-
-The `commands/` and `skills/` directories are the source-controlled home for prompts and skills. To activate them, deploy to the tool-specific directories:
-
-```bash
-# Deploy the skill
-cp -r skills/openspec-validate-change .opencode/skills/openspec-validate-change
-
-# Deploy the command
-cp commands/opsx-validate.md .opencode/commands/opsx-validate.md
-```
-
-After deployment, `/opsx-validate` is available as a slash command in any session in this repo.
 
 ## Example Output
 

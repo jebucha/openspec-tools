@@ -184,26 +184,6 @@ The audit and apply-audit commands are designed to be run in cycles:
 
 You can run `/opsx-audit` again after `/opsx-apply-audit` to confirm all findings were resolved. Multiple audits accumulate in the `audits/` directory with distinct timestamps.
 
-## Files
-
-| File | Source location | Active (deployed) location | Purpose |
-|------|----------------|---------------------------|---------|
-| Slash-command prompt | `kiro/prompts/opsx-audit.md` | `.kiro/prompts/opsx-audit.prompt.md` | Makes `/opsx-audit` available as a Kiro CLI command |
-| Skill definition | `kiro/skills/openspec-audit-change/SKILL.md` | `.kiro/skills/openspec-audit-change/SKILL.md` | Full agent skill with step-by-step audit logic |
-
-## Deployment
-
-The `kiro/` directory is the source-controlled home for prompts and skills. To activate them in Kiro CLI, deploy to `.kiro/`:
-
-```bash
-# Deploy the skill
-cp -r kiro/skills/openspec-audit-change .kiro/skills/openspec-audit-change
-
-# Deploy the prompt (note the .prompt.md suffix required by Kiro CLI)
-cp kiro/prompts/opsx-audit.md .kiro/prompts/opsx-audit.prompt.md
-```
-
-After deployment, `/opsx-audit` is available as a slash command in any Kiro CLI session in this repo.
 
 ## Example Output
 

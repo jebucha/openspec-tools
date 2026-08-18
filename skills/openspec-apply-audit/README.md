@@ -114,12 +114,6 @@ The command can be run multiple times:
 /opsx-apply        → begin implementation
 ```
 
-## Files
-
-| File | Location | Purpose |
-|------|----------|---------|
-| Command definition | `.opencode/commands/opsx-apply-audit.md` | Makes `/opsx-apply-audit` available as a slash command |
-| Skill definition | `skill/openspec-apply-audit/SKILL.md` | Full agent skill with step-by-step logic |
 
 ## Example Output
 
