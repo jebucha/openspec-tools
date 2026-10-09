@@ -222,13 +222,12 @@ After `/opsx-apply` implements a change, this skill independently verifies that 
 
     Announce: "Validation saved to `<path>`"
 
- 13. **Offer follow-up actions**
+13. **Offer follow-up actions**
 
-    After displaying the report, offer:
-    - "Want me to help fix any of these findings?"
-    - "Run `/opsx-validate` again with a different model to compare."
+    After displaying the report, frame this as a checkpoint — the user decides — and offer, in order:
+    - "Fix the findings (continuing the implementation), then re-run `/opsx-validate` in a fresh session with a model that did not write the code."
+    - "Run `/opsx-validate` again in a fresh session with a different model for a second opinion."
     - "Run `/opsx-archive` to archive (if Pass or Conditional verdict)."
-    - "Run `/opsx-apply` to continue implementing (if Fail verdict)."
 
 **Output Examples**
 

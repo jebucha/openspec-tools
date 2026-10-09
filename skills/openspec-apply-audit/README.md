@@ -84,7 +84,7 @@ After fixes are applied, runs a quick consistency check:
 
 ### 5. Reports Results
 
-Shows what was fixed, what remains, and suggests next steps.
+Shows what was fixed, what remains, and suggests next steps. Framed as a checkpoint — the user decides — the next-action suggestion offers first a Model C re-audit of the fixed artifacts in a fresh session (`/opsx-audit`), then proceeding to implementation (`/opsx-apply`) as the alternative.
 
 ## Behavior on Ambiguity
 

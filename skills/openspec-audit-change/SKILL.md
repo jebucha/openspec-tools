@@ -316,14 +316,13 @@ I'll evaluate the change artifacts for:
 
     Announce: "Audit saved to `<path>`"
 
- 12. **Offer follow-up actions**
+12. **Offer follow-up actions**
 
-    After displaying the report, offer:
-    - "Want me to help fix any of these findings?"
-    - "Run `/opsx-apply-audit` to apply fixes to the artifacts."
+    After displaying the report, frame this as a checkpoint — the user decides — and offer, in order:
+    - "Run `/opsx-apply-audit` in a fresh session (any model) to apply fixes to the artifacts."
+    - "Run `/opsx-audit` again in a fresh session with a different model (Model C) for a second opinion."
     - "Run `/opsx-apply` to start implementing (if no blocking errors)."
     - "Run `/opsx-explore` to discuss the findings."
-    - "Run `/opsx-audit` again with a different model to compare findings."
 
 **Output Examples**
 

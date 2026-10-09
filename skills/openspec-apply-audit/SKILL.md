@@ -186,7 +186,9 @@ After `/opsx-audit` identifies issues in a change's artifacts (proposal, design,
     - Findings resolved this session (with brief description of each fix)
     - Any remaining warnings or info items not addressed
     - Validation result (pass/new issues)
-    - Suggest next action: "Run `/opsx-apply` to start implementing."
+    - Suggest next action, framed as a checkpoint — the user decides — in order:
+      - "Run `/opsx-audit` in a fresh session with a different model (Model C) to re-audit the fixed artifacts."
+      - "Run `/opsx-apply` to start implementing."
 
 9. **Persist resolution header to audit file**
 
@@ -273,7 +275,7 @@ Fixing 3/3: Populating "Goals / Non-Goals" in design.md...
 ### Resolution Header
 ✓ Resolution header written to audits/2026-07-09T15-42-claude-opus.md
 
-Artifacts are clean. Run `/opsx-apply` to start implementing.
+Artifacts are clean. Checkpoint — the user decides: re-audit in a fresh session with a different model (Model C) via `/opsx-audit`, or proceed to `/opsx-apply` to start implementing.
 ```
 
 **Output On Pause (Ambiguous Fix)**
