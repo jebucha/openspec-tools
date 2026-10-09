@@ -1,0 +1,24 @@
+# Tasks
+
+## 1. Top-level README — Mixture of Models workflow
+
+- [x] 1.1 Rewrite the "Typical Session" section as the 7-session Mixture of Models flow: Model A (strong) runs `/opsx-explore` + `/opsx-propose`; Model B (fresh session) runs `/opsx-audit` and presents findings; the human chooses the next step; any model runs `/opsx-apply-audit`; Model C (fresh session) re-audits the *fixed* artifacts and presents findings; the human chooses; a more economical model runs `/opsx-apply`; Model B or C (fresh, not the coder) runs `/opsx-validate` and presents findings; the human chooses; any model runs `/opsx-archive`. Label A/B/C as roles (strong author / fresh auditor / second-opinion auditor / more-economical implementer / fresh validator), not specific model names, and mark each audit/validate as a point where the human chooses (fix / re-audit / proceed / stop). Verify: the section shows each phase in its own fresh session, uses role labels (no specific model names), and shows an explicit human decision at every `/opsx-audit` and `/opsx-validate`.
+- [x] 1.2 Add the workflow principles the flow rests on: author/reviewer separation (a model does not grade its own artifacts or code); the change directory on disk is the shared memory between sessions (sessions are disposable); the human is the controller at every checkpoint; a cost gradient (expensive models where judgment is required, more economical models where work is mechanical). Verify: all four principles are named in the README workflow area.
+- [x] 1.3 Add a lightweight escape-hatch note stating that small, low-risk changes may collapse the phases into a single model and session (the prior single-model flow), and that the full multi-model flow is warranted for high-stakes, unfamiliar-codebase, or security-sensitive changes. Verify: the note names both when to use the full flow and when to collapse it.
+- [x] 1.4 Re-frame the "Looping Back" section as human-driven checkpoints: iteration happens because the human chooses to fix and re-audit (or re-validate) at a checkpoint, not because of an automatic loop-until-clean. Replace or rework the automatic loop diagram so it does not imply the model decides "good enough." Verify: no "loop until clean" / automatic-loop framing remains; the section attributes each iteration to a human decision.
+- [x] 1.5 Re-frame the "Quality Gates" section so `/opsx-audit` and `/opsx-validate` are presented as checkpoints where the model presents findings and the human decides how to proceed (align with the checkpoint framing, not a model-decided pass/fail gate). Verify: the section describes the model as presenting findings and the human as deciding, consistent with the rewritten "Typical Session."
+
+## 2. apply-audit README — accuracy fix
+
+- [x] 2.1 Update the Prerequisites in `skills/openspec-apply-audit/README.md` to describe persisted-file-first behavior: the command checks `openspec/changes/<name>/audits/` for saved reports, derives each file's state from the `## Resolved` lifecycle header (Pending vs Resolved), prefers Pending audits, and falls back to session context only when no persisted file exists. Verify: no "must have been run in the current session" wording remains, and the prerequisite matches `SKILL.md` step 3.
+- [x] 2.2 Update "What It Does → 1. Locates the Audit Report" in `skills/openspec-apply-audit/README.md` to describe the same persisted-file-first lookup (check `audits/`, derive Pending/Resolved, prefer Pending, list and let the user pick when multiple Pending exist, fall back to session context). Verify: no "finds the most recent `/opsx-audit` output from the current session" wording remains, and the description matches `SKILL.md` step 3.
+
+## 3. Cross-file consistency and render check
+
+- [x] 3.1 Cross-check the top-level README workflow narrative against `skills/openspec-apply-audit/README.md` and `skills/openspec-apply-audit/SKILL.md` for contradictions about sessions, persistence, and how apply-audit locates audits. Verify: a read of all three shows no statement in one that is contradicted by another (in particular, no "current session required" claim survives anywhere).
+- [x] 3.2 Verify the edited READMEs render correctly (tables, code blocks, and any ASCII diagrams align) and that no stale single-model-only framing remains elsewhere in the top-level README (e.g., the intro "Workflow" command line and step table still read consistently with the multi-model "Typical Session"). Verify: a full read of `README.md` shows consistent framing top to bottom and no broken markdown.
+
+## Workflow follow-up
+
+- Archive the change after the README edits are reviewed and the cross-file consistency check (3.1) passes.
+- Note that the `skills/openspec-apply-audit/README.md` correction ships to deployed projects on the next `./deploy.sh` run (no forced re-deploy required).

@@ -18,38 +18,38 @@ Agent commands and skills for the [OpenSpec](https://openspec.dev) workflow. The
 | 6 | `/opsx-validate` | Validates implementation against proposal, specs, design, and audit findings |
 | 7 | `/opsx-archive` | Archives the completed change with optional spec sync |
 
-### Quality Gates
+In the [Typical Session](#typical-session) below, each step runs in its own fresh session, with a model suited to that step's role.
 
-Two critical quality gates protect against shipping flawed changes:
+### Principles
 
-- **Audit (step 3)**: Reviews the change artifacts before implementation begins. Catches scope gaps, missing specs, infeasible designs, and task ordering issues. Use `/opsx-apply-audit` to fix findings.
-- **Validate (step 6)**: Verifies the implementation matches what was planned. Checks spec compliance, test coverage, task completion, code quality, and regression safety.
+The workflow rests on four principles:
 
-Both gates produce structured findings (errors, warnings, info) you can address before proceeding.
+- **Author/reviewer separation** — A model does not grade its own artifacts or code. Audits and validation are done by fresh models that did not write what they are reviewing.
+- **Disk is the shared memory** — The change directory (`openspec/changes/<name>/`) is what sessions share; sessions themselves are disposable. Audit reports persist to files, so a later session — with a different model — can pick up exactly where an earlier one left off.
+- **The human is the controller** — At every audit and validate checkpoint, the model presents findings and you decide how to proceed (fix / re-audit / proceed / stop). No step advances on a model's judgment alone.
+- **Cost gradient** — Expensive models where judgment is required (authoring, auditing, validating); more economical models where the work is mechanical (implementing well-specified, audited tasks).
+
+### Quality Checkpoints
+
+Two checkpoints slow the workflow down where it matters most:
+
+- **Audit (step 3)**: A fresh model reviews the change artifacts before implementation begins — scope gaps, missing specs, infeasible designs, task ordering issues. It presents a structured findings summary (errors, warnings, info); **you decide** what happens next: fix the findings with `/opsx-apply-audit`, re-audit, proceed anyway, or stop.
+- **Validate (step 6)**: A fresh model that did not write the code verifies the implementation against what was planned — spec compliance, test coverage, task completion, code quality, regression safety. It presents its findings and verdict; **you decide** whether to fix and re-validate, or archive.
+
+The model informs; the human decides. Neither checkpoint is a model-judged pass/fail gate — "is this good enough?" is your call at each one.
 
 ### Looping Back
 
-When audit or validate finds issues, you can iterate without restarting:
+There is no automatic loop. When an audit or validate presents findings, **you** choose what happens next — fix and re-run, proceed, or stop. Every iteration is a human decision at a checkpoint, never a model deciding the artifacts are "good enough."
 
 ```
-         ┌─────────────────────────────────────────────┐
-         │                                             │
-         ▼                                             │
-propose ──→ audit ──→ apply-audit                     │
-         ↑        │                                   │
-         │        │ (errors/warnings)                 │
-         │        └───────────────────────────────────┘
-         │
-         ▼
-   apply ──→ validate ──→ archive
-              │
-              │ (errors/warnings)
-              ▼
-         fix issues, re-validate
+propose ──→ audit ──→ ◆ you decide ──→ apply-audit ──→ re-audit (fresh model) ──→ ◆ you decide
+                      fix / re-audit / (fixes findings)                           fix / re-audit /
+                      proceed / stop                                              proceed / stop
 ```
 
-- **Audit findings**: Run `/opsx-apply-audit` to fix artifacts, then re-audit with `/opsx-audit`
-- **Validate findings**: Fix the issues in code, then re-run `/opsx-validate`
+- **Audit findings**: If you choose to fix, run `/opsx-apply-audit` to fix artifacts, then re-audit with `/opsx-audit` — or proceed to implementation without re-auditing
+- **Validate findings**: If you choose to fix, address the issues in code, then re-run `/opsx-validate` — or archive as-is
 - **New requirements discovered**: Update artifacts with `/opsx-propose` or manual edits, then re-audit
 
 ## Commands
@@ -81,8 +81,8 @@ Skills contain the detailed step-by-step logic that agents follow when a command
 
 | Skill | Purpose |
 |-------|---------|
-| `skill/openspec-audit-change/` | Structural + semantic audit of change artifacts (accuracy, completeness, validity, feasibility, coherence) |
-| `skill/openspec-apply-audit/` | Remediation engine — resolves audit findings by modifying artifacts |
+| `skills/openspec-audit-change/` | Structural + semantic audit of change artifacts (accuracy, completeness, validity, feasibility, coherence) |
+| `skills/openspec-apply-audit/` | Remediation engine — resolves audit findings by modifying artifacts |
 | `skills/openspec-validate-change/` | Validates implementation against proposal, specs, design, and audit findings |
 | `skills/security-audit/` | Comprehensive security audit: reconnaissance, threat hunting, validation, and reporting |
 
@@ -139,13 +139,23 @@ Deploy to the current directory:
 openspec-tools/
 ├── commands/                   # Source command definitions (deployed by deploy.sh)
 │   ├── opsx-audit.md
-│   └── opsx-apply-audit.md
-├── skill/                      # Source skill definitions (deployed by deploy.sh)
+│   ├── opsx-apply-audit.md
+│   ├── opsx-validate.md
+│   └── opsx-security-audit.md
+├── skills/                     # Source skill definitions (deployed by deploy.sh)
 │   ├── openspec-audit-change/
+│   │   ├── README.md
 │   │   └── SKILL.md
-│   └── openspec-apply-audit/
+│   ├── openspec-apply-audit/
+│   │   ├── README.md
+│   │   └── SKILL.md
+│   ├── openspec-validate-change/
+│   │   ├── README.md
+│   │   └── SKILL.md
+│   └── security-audit/
+│       ├── README.md
 │       ├── SKILL.md
-│       └── README.md
+│       └── ... (hunting reference docs, report schema, validator)
 ├── .opencode/                  # Deployed commands + skills (local dev use)
 │   ├── commands/
 │   └── skills/
@@ -228,31 +238,48 @@ openspec/changes/add-user-auth/audits/
 
 ## Typical Session
 
-```bash
-# 1. Explore the problem (recommended)
-/opsx-explore "How should we handle user authentication?"
+The typical session is a **Mixture of Models** flow: each phase runs in its own fresh session, staffed by the kind of model the phase calls for. A, B, and C are *roles*, not specific models — map them to whatever you have available.
 
-# 2. Propose a change
+| Session | Role | Command | What happens |
+|---------|------|---------|--------------|
+| 1 | **Model A** — strong author | `/opsx-explore` + `/opsx-propose` | Explores the problem, then writes the proposal, design, and tasks |
+| 2 | **Model B** — fresh auditor | `/opsx-audit` | Reviews Model A's artifacts and **presents findings** → **you choose**: fix / re-audit / proceed / stop |
+| 3 | Any model | `/opsx-apply-audit` | Fixes the findings you chose to fix; writes a `## Resolved` header into the audit file so the next run sequences to the remaining work |
+| 4 | **Model C** — second-opinion auditor | `/opsx-audit` | Re-audits the *fixed* artifacts in a fresh session (serial, so its findings are against current state) and **presents findings** → **you choose** again |
+| 5 | More-economical implementer | `/opsx-apply` | Implements the tasks. The proposal, design, and tasks are now well-defined and audited, so implementation is more mechanical — a cost-strategy fit, not a corner cut |
+| 6 | **Model B or C** — fresh validator (not the coder) | `/opsx-validate` | Validates the implementation against the artifacts and **presents findings** → **you choose**: fix / re-validate / archive |
+| 7 | Any model | `/opsx-archive` | Archives the completed change with optional spec sync |
+
+```bash
+# Session 1 — Model A (strong author)
+/opsx-explore "How should we handle user authentication?"
 /opsx-propose add-user-auth
 
-# 3. Audit the generated artifacts
+# Session 2 — Model B (fresh auditor)
 /opsx-audit add-user-auth
+# → findings presented; you choose: fix / re-audit / proceed / stop
 
-# 4. If findings exist, fix them
+# Session 3 — any model (if you chose to fix)
 /opsx-apply-audit add-user-auth
 
-# 5. Implement the code
+# Session 4 — Model C (second-opinion auditor, fresh session)
+/opsx-audit add-user-auth
+# → findings on the fixed artifacts presented; you choose again
+
+# Session 5 — more-economical implementer
 /opsx-apply add-user-auth
 
-# 6. Validate the implementation
+# Session 6 — Model B or C (fresh validator, not the model that wrote the code)
 /opsx-validate add-user-auth
+# → findings presented; you choose: fix / re-validate / archive
 
-# 7. If validation finds issues, fix them and re-validate
-#    (loop until clean)
-
-# 8. Archive when done
+# Session 7 — any model
 /opsx-archive add-user-auth
 ```
+
+The two-audit shape (B, then C) is the documented focus, not a quota — you may run more audit/fix cycles, or proceed earlier, at any checkpoint.
+
+> **Escape hatch:** For small, low-risk changes, collapse the phases into a single model and session — run the seven commands above in one session, the way the pre-multi-model flow did. The full Mixture of Models flow is warranted for high-stakes changes, unfamiliar codebases, or security-sensitive work.
 
 ## Requirements
 

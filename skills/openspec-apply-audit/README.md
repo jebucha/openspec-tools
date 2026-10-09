@@ -34,14 +34,17 @@ If the change name is omitted, the command will:
 ## Prerequisites
 
 - A change must exist with artifacts (run `/opsx-propose` first)
-- An audit must have been run in the current session (run `/opsx-audit` first)
-- If no audit report is found in context, the command will suggest running one
+- An audit must exist — either as a persisted report in `openspec/changes/<name>/audits/` or, failing that, in the current session's context (run `/opsx-audit` first)
+- The command checks `openspec/changes/<name>/audits/` for saved reports, derives each file's state from its `## Resolved` lifecycle header (Pending vs Resolved), and prefers Pending audits; it falls back to session context only when no persisted file exists
+- If no audit is found anywhere, the command will suggest running one
 
 ## What It Does
 
 ### 1. Locates the Audit Report
 
-Finds the most recent `/opsx-audit` output from the current session and parses the findings by severity:
+Checks `openspec/changes/<name>/audits/` for persisted audit reports first. Each file's state is derived from its `## Resolved` lifecycle header — **Pending** (no header at the start of the file; legacy files without lifecycle headers count as Pending) or **Resolved** (header present). Pending audits are preferred: a single Pending audit is used automatically, and when multiple exist they are listed (timestamp, model, findings count) for you to pick from. If no Pending audit exists but Resolved ones do, the command tells you all existing audits are resolved and offers to run a fresh `/opsx-audit`. If no persisted audit exists, the command falls back to a prior `/opsx-audit` run in the current session. If there is no audit anywhere, it suggests running one.
+
+The selected report's findings are then parsed by severity:
 - **Errors** — must fix before implementation
 - **Warnings** — should fix for quality
 - **Info** — optional, applied if straightforward
