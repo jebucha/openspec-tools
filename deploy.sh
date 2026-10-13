@@ -13,8 +13,9 @@ for arg in "$@"; do
     --opencode) FORCE_ENV="opencode" ;;
     --claude)   FORCE_ENV="claude" ;;
     --qwen)     FORCE_ENV="qwen" ;;
+    --pi)       FORCE_ENV="pi" ;;
     --*)        echo "Error: Unknown option '$arg'" >&2
-                echo "Valid options: --opencode, --kiro, --claude, --qwen" >&2
+                echo "Valid options: --opencode, --kiro, --claude, --qwen, --pi" >&2
                 exit 1 ;;
     *)          TARGET="$arg" ;;
   esac
@@ -32,20 +33,22 @@ else
   [[ -d "$TARGET/.kiro" ]]     && ENVS="${ENVS:+$ENVS }kiro"
   [[ -d "$TARGET/.claude" ]]   && ENVS="${ENVS:+$ENVS }claude"
   [[ -d "$TARGET/.qwen" ]]     && ENVS="${ENVS:+$ENVS }qwen"
+  [[ -d "$TARGET/.pi" ]]       && ENVS="${ENVS:+$ENVS }pi"
 fi
 
 if [[ -z "$ENVS" ]]; then
   echo "Error: No supported environment found in $TARGET"
   echo ""
-  echo "Expected one of: .opencode/, .kiro/, .claude/, .qwen/"
+  echo "Expected one of: .opencode/, .kiro/, .claude/, .qwen/, .pi/"
   echo ""
   echo "Initialize one of:"
   echo "  openspec init     → creates .opencode/"
   echo "  kiro init         → creates .kiro/"
   echo "  mkdir .claude     → creates .claude/"
   echo "  openspec init     → creates .qwen/"
+  echo "  openspec init --tools pi → creates .pi/"
   echo ""
-  echo "Or force a target: --opencode, --kiro, --claude, --qwen"
+  echo "Or force a target: --opencode, --kiro, --claude, --qwen, --pi"
   exit 1
 fi
 
@@ -125,6 +128,23 @@ deploy_qwen() {
   done
 }
 
+deploy_pi() {
+  mkdir -p "$TARGET/.pi/prompts"
+  for cmd in "$SCRIPT_DIR"/commands/*.md; do
+    [[ -f "$cmd" ]] || continue
+    cp "$cmd" "$TARGET/.pi/prompts/"
+    echo "  [pi] command: $(basename "$cmd")"
+  done
+
+  for skill_dir in "$SCRIPT_DIR"/skills/*/; do
+    [[ -d "$skill_dir" ]] || continue
+    skill_name="$(basename "$skill_dir")"
+    mkdir -p "$TARGET/.pi/skills/$skill_name"
+    cp "$skill_dir"* "$TARGET/.pi/skills/$skill_name/" 2>/dev/null || true
+    echo "  [pi] skill: $skill_name"
+  done
+}
+
 # Deploy to each detected/forced environment
 for env in $ENVS; do
   case "$env" in
@@ -132,6 +152,7 @@ for env in $ENVS; do
     kiro)     deploy_kiro ;;
     claude)   deploy_claude ;;
     qwen)     deploy_qwen ;;
+    pi)       deploy_pi ;;
   esac
 done
 

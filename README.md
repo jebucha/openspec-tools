@@ -117,6 +117,7 @@ Auto-detects the target environment and deploys accordingly:
 - `.kiro/` present → prompts to `.kiro/prompts/`, skills to `.kiro/skills/`
 - `.claude/` present → commands to `.claude/commands/opsx/`, skills to `.claude/skills/`
 - `.qwen/` present → commands to `.qwen/commands/`, skills to `.qwen/skills/`
+- `.pi/` present → prompts to `.pi/prompts/`, skills to `.pi/skills/`
 - Multiple present → deploys to all detected environments
 
 Force a specific target with flags:
@@ -125,6 +126,7 @@ Force a specific target with flags:
 ./deploy.sh --opencode /path/to/project
 ./deploy.sh --claude /path/to/project
 ./deploy.sh --qwen /path/to/project
+./deploy.sh --pi /path/to/project
 ```
 
 Deploy to the current directory:

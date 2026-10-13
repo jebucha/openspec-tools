@@ -61,7 +61,10 @@ assert_eq "deploy with no env dir exits 1" "1" "$RC"
 assert_contains "error message shown" "No supported environment" "$OUT"
 assert_contains "error lists .qwen/" ".qwen/" "$OUT"
 assert_contains "error lists --qwen" "--qwen" "$OUT"
+assert_contains "error lists .pi/" ".pi/" "$OUT"
+assert_contains "error lists --pi" "--pi" "$OUT"
 check "no .qwen created" test ! -e "$T/.qwen"
+check "no .pi created" test ! -e "$T/.pi"
 
 echo "Test: Qwen force flag"
 T="$WORK/force"; mkdir -p "$T/.opencode"
@@ -103,12 +106,62 @@ for s in "${SKILLS[@]}"; do
   assert_contains "progress line for $s" "  [qwen] skill: $s" "$OUT"
 done
 
+echo "Test: Pi auto-detection"
+T="$WORK/pi-auto-detect"; mkdir -p "$T/.pi"
+run_deploy "$T"
+assert_eq "deploy with .pi/ present exits 0" "0" "$RC"
+assert_contains "summary lists pi" "(pi)" "$OUT"
+for c in "${COMMANDS[@]}"; do
+  check "pi command $c deployed" test -f "$T/.pi/prompts/$c"
+done
+
+echo "Test: Pi force flag"
+T="$WORK/pi-force"; mkdir -p "$T/.opencode"
+run_deploy --pi "$T"
+assert_eq "pi force deploy exits 0" "0" "$RC"
+assert_contains "only pi deployed" "(pi)" "$OUT"
+check ".pi/prompts created" test -d "$T/.pi/prompts"
+check ".opencode not touched" test ! -e "$T/.opencode/commands"
+
+echo "Test: Pi commands deployed as-is"
+T="$WORK/pi-as-is"; mkdir -p "$T/.pi"
+run_deploy "$T"
+for c in "${COMMANDS[@]}"; do
+  if cmp -s "$REPO_ROOT/commands/$c" "$T/.pi/prompts/$c"; then
+    ok "pi command $c content unchanged"
+  else
+    bad "pi command $c content changed"
+  fi
+done
+
+echo "Test: Pi skills deployed unchanged"
+T="$WORK/pi-skills"; mkdir -p "$T/.pi"
+run_deploy "$T"
+for s in "${SKILLS[@]}"; do
+  if diff -r "$REPO_ROOT/skills/$s" "$T/.pi/skills/$s" >/dev/null 2>&1; then
+    ok "pi skill $s unchanged"
+  else
+    bad "pi skill $s differs"
+  fi
+done
+
+echo "Test: Pi deployment progress output"
+T="$WORK/pi-progress"; mkdir -p "$T/.pi"
+run_deploy "$T"
+for c in "${COMMANDS[@]}"; do
+  assert_contains "pi progress line for $c" "  [pi] command: $c" "$OUT"
+done
+for s in "${SKILLS[@]}"; do
+  assert_contains "pi progress line for $s" "  [pi] skill: $s" "$OUT"
+done
+
 echo "Test: Unknown flag rejection"
 T="$WORK/unknown-flag"; mkdir -p "$T/.qwen"
 run_deploy --gemini "$T"
 assert_eq "unknown flag exits 1" "1" "$RC"
 assert_contains "error names the flag" "Unknown option '--gemini'" "$OUT"
 assert_contains "error lists valid options" "--qwen" "$OUT"
+assert_contains "error lists --pi as valid" "--pi" "$OUT"
 check "nothing deployed" test ! -e "$T/.qwen/commands"
 
 echo "Test: Other targets still work (regression sanity)"
@@ -135,6 +188,13 @@ for c in "${COMMANDS[@]}"; do
   prefix="${base%%-*}"
   rest="${base#*-}"
   check "claude: $prefix/$rest.md" test -f "$T/.claude/commands/$prefix/$rest.md"
+done
+
+T="$WORK/pi"; mkdir -p "$T/.pi"
+run_deploy "$T"
+assert_eq "pi deploy exits 0" "0" "$RC"
+for c in "${COMMANDS[@]}"; do
+  check "pi: $c" test -f "$T/.pi/prompts/$c"
 done
 
 echo ""
