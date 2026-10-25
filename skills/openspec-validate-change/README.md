@@ -60,11 +60,24 @@ Checks whether each spec requirement is satisfied by the implemented code.
 
 ### Test Coverage
 
-Checks whether tests exist for new requirements and cover edge cases.
+Two checks: scenarios with a Test Requirement block are verified by execution (step 6b); scenarios without one keep the structural check (step 6a), unchanged.
+
+**Structural (6a)** — checks whether tests exist for new requirements and cover edge cases.
 
 - **Covered** — tests exist and cover happy path + edge cases
 - **Partially covered** — tests exist but miss edge cases (Warning)
 - **Not covered** — no tests found for the requirement (Error)
+
+**Executable (6b)** — runs the declared Test Requirement blocks (Category "Executable: tests", normal VD- sequence):
+
+- **Satisfied** — command exits 0 with no skipped tests; no finding
+- **Failed command** — non-zero exit (Error; evidence: exit code + last 20 lines of output)
+- **Skipped test** — any skipped/xfail test (Error — a skipped test asserts nothing)
+- **Missing file or test ID** — reported distinctly from a test failure (Error)
+- **Prerequisite unmet** — reported distinctly from a test failure (Error)
+- **Zero-block change** — structural validation as before, plus one Info finding
+
+**The convention** — a Test Requirement block is a bullet list directly under a spec scenario with four fields: `ID` (`T-<CAPABILITY-UPPERCASE>-<NNN>`), `File` (test file path and test ID joined by `::`), `Command` (exact runnable invocation from the project root), and `Pass` (machine-checkable criterion). The change's design.md `## Test Strategy` section declares once per change the runner, the full-suite command, and typed prerequisites (`env: <VAR>`, `file: <path>`, `cmd: <probe>`); blocks reference it instead of repeating environment details.
 
 ### Task Completion
 
@@ -133,6 +146,7 @@ Findings are capped at **50 total**, prioritized by severity (Errors → Warning
 | Total requirements           | 8           |
 | Requirements satisfied       | 7 (87.5%)   |
 | Requirements with tests      | 8 (100%)    |
+| Executable tests passed      | 4/4 (100%)  |
 | Tasks complete               | 12/12 (100%)|
 | Changed files examined       | 5           |
 ```
@@ -162,7 +176,11 @@ The persisted file enables:
 - **50-finding cap** — Capped at 50 findings, prioritized Errors → Warnings → Info.
 - **Scope to change** — Only examines files touched by the change and immediate dependencies.
 - **Best-effort quality checks** — Code quality and regression checks are advisory, not exhaustive.
-- **Test checks are structural** — Verifies tests exist and cover scenarios; doesn't run tests.
+- **Declared-only execution** — Step 6b runs the block's `Command` verbatim; never synthesized, broadened (e.g., to a full-suite run), or edited.
+- **Read-only with respect to the codebase** — Running a block never installs dependencies or edits config or environment state; unmet prerequisites are reported instead.
+- **Bounded execution** — Hard 120-second timeout per command (Error with partial output); at most 25 commands per execution, prioritized by spec order, remainder summarized.
+- **Exit-code evidence** — Executable test findings cite the exit code and the last 20 lines of output; skip detection uses the declared Pass criterion with per-runner-family skip markers.
+- **Stable IDs for executable findings** — Category "Executable: tests" with the normal VD- sequence, so regression detection continues to work.
 - **Backward compatible** — Validation files without lifecycle headers function normally.
 
 ## Iterative Use
@@ -195,15 +213,16 @@ Multiple validations accumulate in the `validations/` directory with distinct ti
 ### Summary
 - Errors: 0
 - Warnings: 1
-- Info: 2
+- Info: 3
 
 ### Findings
 
-| ID   | Category        | Severity | Description                          | Evidence                                         |
-|------|-----------------|----------|--------------------------------------|--------------------------------------------------|
-| VD-1 | Test coverage   | Warning  | Edge case not tested                 | `tests/auth.test.ts` — missing token expiry      |
-| VD-2 | Code quality    | Info     | New dependency                       | `bcrypt` not in package.json                     |
-| VD-3 | Task completion | Info     | Task is documentation-only           | Task 2.3 — README update                         |
+| ID   | Category        | Severity | Description                              | Evidence                                         |
+|------|-----------------|----------|------------------------------------------|--------------------------------------------------|
+| VD-1 | Test coverage   | Warning  | Edge case not tested                     | `tests/auth.test.ts` — missing token expiry      |
+| VD-2 | Code quality    | Info     | New dependency                           | `bcrypt` not in package.json                     |
+| VD-3 | Task completion | Info     | Task is documentation-only               | Task 2.3 — README update                         |
+| VD-4 | Executable: tests | Info  | No executable test requirements declared | No Test Requirement blocks in spec files         |
 
 ### Coverage Metrics
 
@@ -212,6 +231,7 @@ Multiple validations accumulate in the `validations/` directory with distinct ti
 | Total requirements           | 5           |
 | Requirements satisfied       | 5 (100%)    |
 | Requirements with tests      | 5 (100%)    |
+| Executable tests passed      | 0/0         |
 | Tasks complete               | 7/7 (100%)  |
 | Changed files examined       | 4           |
 
@@ -229,7 +249,7 @@ Multiple validations accumulate in the `validations/` directory with distinct ti
 **Artifacts checked:** proposal.md, design.md, specs/csv-export/spec.md, tasks.md
 
 ### Summary
-- Errors: 3
+- Errors: 4
 - Warnings: 2
 - Info: 1
 
@@ -242,6 +262,7 @@ Multiple validations accumulate in the `validations/` directory with distinct ti
 | VD-3 | Task completion | Error    | Task 3.2 incomplete                  | `tasks.md` line 15 — `- [ ]` still unchecked     |
 | VD-4 | Test coverage   | Warning  | Edge case not tested                 | `tests/utils.test.ts` — missing empty dataset    |
 | VD-5 | Regression      | Warning  | Public interface changed             | `src/utils.ts:45` — added required `locale` param|
+| VD-6 | Executable: tests | Error | Test command failed                | `T-CSV-EXPORT-001` — exit 1; last 20 lines end with "1 failed, 4 passed" |
 
 ### Coverage Metrics
 
@@ -250,6 +271,7 @@ Multiple validations accumulate in the `validations/` directory with distinct ti
 | Total requirements           | 8           |
 | Requirements satisfied       | 6 (75%)     |
 | Requirements with tests      | 4 (50%)     |
+| Executable tests passed      | 3/4 (75%)   |
 | Tasks complete               | 10/12 (83%) |
 | Changed files examined       | 5           |
 

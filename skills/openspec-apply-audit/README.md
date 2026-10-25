@@ -63,6 +63,9 @@ For each finding, determines the appropriate fix:
 | Empty/placeholder sections | Populates from proposal/design context |
 | Naming convention violations | Renames to kebab-case |
 | Stale file references | Updates or removes invalid paths |
+| Missing test requirement (6d) | Generates a Test Requirement block from the scenario's WHEN/THEN; `File` and `Command` derived from the Test Strategy; the `## Test Strategy` section is created first when absent |
+| Incomplete / malformed test requirement block (6d) | Fills in the missing fields; corrects the ID to `T-<CAPABILITY-UPPERCASE>-<NNN>` |
+| Fake test requirement block (6d) | Replaces the block with a genuine assertion, or deletes it (noting the exemption) when the scenario is actually exempt |
 
 The full plan is presented to the user for confirmation before any changes are made.
 

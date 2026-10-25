@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires openspec CLI.
 metadata:
   author: jebucha
-  version: "1.2"
+  version: "1.3"
 ---
 
 Audit an existing change proposal for quality issues before implementation.
@@ -70,6 +70,7 @@ I'll evaluate the change artifacts for:
    - Scan the design.md and tasks.md for references to source code files (paths like `src/`, `lib/`, `tests/`, etc.)
    - For each referenced file, check if it exists in the workspace
    - Use glob to verify — do not assume file existence from memory
+   - **Forward-reference exemption** — `File` paths inside Test Requirement blocks (in spec files) and file references in a design.md `## Test Strategy` section are created by `/opsx-apply` and are exempt from this existence check. Do not flag them as missing, even if the scan extends beyond design.md and tasks.md into spec files
 
    **4c. Spec contradictions**
    - If multiple spec files exist, check for requirements that define conflicting behavior
@@ -145,10 +146,38 @@ I'll evaluate the change artifacts for:
    - Verify change name uses kebab-case
    - Flag violations with suggested corrections
 
+   **6d. Executable test requirement presence**
+
+   A **Test Requirement** block is a bullet list directly under a `#### Scenario:` with four fields: `ID` (format `T-<CAPABILITY-UPPERCASE>-<NNN>`), `File` (test file path and test ID joined by `::`, e.g. `tests/foo.test.ts::test_name`), `Command` (exact runnable invocation from the project root), and `Pass` (machine-checkable criterion). Blocks reference the change's `## Test Strategy` section rather than repeating runner or environment details.
+
+   For each scenario in the change's spec files, apply this decision table:
+
+   ```
+   behavior-changing? (exempt: docs, config, contract-preserving refactor)
+    ├─ exempt ────────────────────────────────→ no finding
+    ├─ no block ──────────────────────────────→ Warning (VL-n) "missing test requirement"
+    └─ block present:
+         complete (4 fields)?  no ────────────→ Warning (VL-n) "incomplete block", naming the missing field(s)
+         ID format valid?      no ────────────→ Warning (VL-n) "malformed ID", stating the expected format
+         genuine?              no ────────────→ Warning (VL-n) "not a runtime behavior assertion"
+   design.md has ## Test Strategy?  no ───────→ single Info finding (one per change, not per block)
+   ```
+
+   Fake-block patterns — a block is not a genuine runtime-behavior assertion if:
+   - **Static-only command** — the Command is a linter, formatter, type checker, vet, or compile check
+   - **Existential pass criterion** — the Pass criterion asserts only that a file or test exists
+   - **Behavior-unrelated command** — the Command does not plausibly exercise the scenario's declared outcome. Evidence rule: quote the scenario's outcome and the block's Command side by side
+
+   **Boundary rule** — a content assertion (e.g., grep, diff) that verifies the scenario's declared outcome IS a Test Requirement.
+
+   All 6d findings are Warning or Info, never Error.
+
+   Feed the Coverage Metrics row "Requirements with executable test requirements | X (Y%)": X counts requirements where every behavior-changing scenario carries a complete, genuine block; Y counts requirements with at least one behavior-changing scenario. A scenario with a fake block keeps its requirement out of X.
+
    Report each finding with:
    - **Error**: Broken task dependencies
-   - **Warning**: Non-testable requirements, vague qualifiers, unresolved placeholders
-   - **Info**: Naming convention violations
+   - **Warning**: Non-testable requirements, vague qualifiers, unresolved placeholders, missing/incomplete/malformed/fake test requirement blocks (6d)
+   - **Info**: Naming convention violations, missing `## Test Strategy` section (6d)
 
 7. **Run Feasibility Checks**
 
@@ -252,6 +281,7 @@ I'll evaluate the change artifacts for:
    | Tasks with mapped requirement | <count> (<percent>%) |
    | Duplications found | <count> |
    | Ambiguities found | <count> |
+   | Requirements with executable test requirements | <count> (<percent>%) |
 
    ---
 
@@ -356,6 +386,7 @@ I'll evaluate the change artifacts for:
 | Tasks with mapped requirement | 6 (86%) |
 | Duplications found | 0 |
 | Ambiguities found | 0 |
+| Requirements with executable test requirements | 5 (100%) |
 
 ### Verdict
 Ready for implementation.
@@ -400,6 +431,7 @@ Ready for implementation.
 | Tasks with mapped requirement | 10 (83%) |
 | Duplications found | 1 |
 | Ambiguities found | 1 |
+| Requirements with executable test requirements | 3 (50%) |
 
 ### Verdict
 Cannot proceed to implementation. Resolve errors first.

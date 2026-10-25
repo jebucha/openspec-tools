@@ -53,7 +53,7 @@ The audit evaluates artifacts across five categories. Each finding is assigned a
 Checks whether artifacts are internally consistent and consistent with the actual codebase.
 
 - **Capability name consistency** — every capability listed in the proposal has a corresponding spec file
-- **Referenced file existence** — source file paths mentioned in design and tasks actually exist
+- **Referenced file existence** — source file paths mentioned in design and tasks actually exist. `File` paths in Test Requirement blocks and file references in a design.md `## Test Strategy` section are forward references created by `/opsx-apply` and are exempt
 - **Spec contradictions** — requirements across multiple spec files don't define conflicting behavior
 - **Duplication detection** — near-duplicate requirements and tasks that describe the same work
 - **Terminology drift** — the same concept isn't named differently across artifacts (e.g., "user" in proposal, "account" in design, "member" in specs)
@@ -74,6 +74,7 @@ Checks whether artifacts follow structural conventions and contain well-formed c
 - **Non-testable requirements** — flags vague qualifiers like "fast", "scalable", "secure", "intuitive" with no measurable criteria
 - **Task dependency chains** — verifies cross-task references (e.g., "depends on 2.1") point to real tasks
 - **Naming convention compliance** — capability names and change names should use kebab-case
+- **Executable test requirement presence (step 6d)** — behavior-changing scenarios should carry a complete, genuine Test Requirement block (`ID` / `File` / `Command` / `Pass` under the scenario). Missing, incomplete, or malformed-ID blocks are Warnings; a fake block is a Warning ("not a runtime behavior assertion") — fake patterns: static-only command (linter, formatter, type checker, vet, compile check), existential pass criterion (asserts only that a file or test exists), or behavior-unrelated command (evidence: the scenario's outcome and the block's Command quoted side by side). A content assertion (grep/diff) that verifies the scenario's declared outcome IS a Test Requirement. A missing `## Test Strategy` section in design.md is a single Info finding
 
 ### Feasibility (FS-)
 
@@ -139,6 +140,7 @@ Findings are capped at **50 total**, prioritized by severity (Errors → Warning
 | Tasks with mapped requirement   | 10 (83%)     |
 | Duplications found              | 1            |
 | Ambiguities found               | 1            |
+| Requirements with executable test requirements | 3 (50%) |
 ```
 
 ## Persisted Audit File
@@ -220,6 +222,7 @@ You can run `/opsx-audit` again after `/opsx-apply-audit` to confirm all finding
 | Tasks with mapped requirement   | 6 (86%)     |
 | Duplications found              | 0           |
 | Ambiguities found               | 0           |
+| Requirements with executable test requirements | 5 (100%) |
 
 ---
 
@@ -269,6 +272,7 @@ Ready for implementation.
 | Tasks with mapped requirement   | 10 (83%)    |
 | Duplications found              | 1           |
 | Ambiguities found               | 1           |
+| Requirements with executable test requirements | 3 (50%) |
 
 ---
 
