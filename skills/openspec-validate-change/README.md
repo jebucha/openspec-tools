@@ -77,6 +77,15 @@ Two checks: scenarios with a Test Requirement block are verified by execution (s
 - **Prerequisite unmet** — reported distinctly from a test failure (Error)
 - **Zero-block change** — structural validation as before, plus one Info finding
 
+**Full-suite regression gate (6c)** — opt-in via `regression: enabled` in the change's `## Test Strategy` (a value that is not exactly `enabled` is treated as absent); runs after the block commands, even if some blocks failed:
+
+- **Unmet prerequisite** — suite not run (Error "prerequisite unmet"; row `Full suite | Not run`)
+- **Suite failed** — non-zero exit or timeout (Error, Category "Executable: suite"; evidence: exit code + last 20 lines of output; row `Full suite | Fail`)
+- **Suite skips** — one Info finding with the skip count, not an Error (row `Full suite | Pass`)
+- **Suite passed** — no finding (row `Full suite | Pass`)
+
+The suite runs the Test Strategy's full-suite command verbatim from the project root (declared-only, read-only) under a 600-second default suite timeout overridable by `suite-timeout: <seconds>`. The suite run does not count against the 25-command block cap. Gate absent → no step, no `Full suite` row, no finding — the report is identical to the pre-gate behavior.
+
 **The convention** — a Test Requirement block is a bullet list directly under a spec scenario with four fields: `ID` (`T-<CAPABILITY-UPPERCASE>-<NNN>`), `File` (test file path and test ID joined by `::`), `Command` (exact runnable invocation from the project root), and `Pass` (machine-checkable criterion). The change's design.md `## Test Strategy` section declares once per change the runner, the full-suite command, and typed prerequisites (`env: <VAR>`, `file: <path>`, `cmd: <probe>`); blocks reference it instead of repeating environment details.
 
 ### Task Completion
@@ -147,6 +156,7 @@ Findings are capped at **50 total**, prioritized by severity (Errors → Warning
 | Requirements satisfied       | 7 (87.5%)   |
 | Requirements with tests      | 8 (100%)    |
 | Executable tests passed      | 4/4 (100%)  |
+| Full suite                   | Pass        |
 | Tasks complete               | 12/12 (100%)|
 | Changed files examined       | 5           |
 ```
@@ -176,11 +186,11 @@ The persisted file enables:
 - **50-finding cap** — Capped at 50 findings, prioritized Errors → Warnings → Info.
 - **Scope to change** — Only examines files touched by the change and immediate dependencies.
 - **Best-effort quality checks** — Code quality and regression checks are advisory, not exhaustive.
-- **Declared-only execution** — Step 6b runs the block's `Command` verbatim; never synthesized, broadened (e.g., to a full-suite run), or edited.
-- **Read-only with respect to the codebase** — Running a block never installs dependencies or edits config or environment state; unmet prerequisites are reported instead.
-- **Bounded execution** — Hard 120-second timeout per command (Error with partial output); at most 25 commands per execution, prioritized by spec order, remainder summarized.
-- **Exit-code evidence** — Executable test findings cite the exit code and the last 20 lines of output; skip detection uses the declared Pass criterion with per-runner-family skip markers.
-- **Stable IDs for executable findings** — Category "Executable: tests" with the normal VD- sequence, so regression detection continues to work.
+- **Declared-only execution** — Step 6b runs the block's `Command` verbatim; never synthesized, broadened, or edited. The Test Strategy's full-suite command is the sole opt-in exception: it runs only when the regression gate is enabled (step 6c), once, and is never used to broaden a block run.
+- **Read-only with respect to the codebase** — Running a block or the suite never installs dependencies or edits config or environment state; unmet prerequisites are reported instead.
+- **Bounded execution** — The 120-second timeout and the 25-command cap are scoped to step 6b block commands (Error with partial output on timeout; remainder summarized). The opt-in full-suite run (step 6c) does not count against the cap and runs under a 600-second default suite timeout, overridable by `suite-timeout: <seconds>`.
+- **Exit-code evidence** — Executable test and suite findings cite the exit code and the last 20 lines of output; skip detection uses the declared Pass criterion with per-runner-family skip markers.
+- **Stable IDs for executable findings** — Category "Executable: tests" for block commands and "Executable: suite" for the full-suite run, both with the normal VD- sequence, so regression detection continues to work.
 - **Backward compatible** — Validation files without lifecycle headers function normally.
 
 ## Iterative Use
@@ -249,7 +259,7 @@ Multiple validations accumulate in the `validations/` directory with distinct ti
 **Artifacts checked:** proposal.md, design.md, specs/csv-export/spec.md, tasks.md
 
 ### Summary
-- Errors: 4
+- Errors: 5
 - Warnings: 2
 - Info: 1
 
@@ -263,6 +273,7 @@ Multiple validations accumulate in the `validations/` directory with distinct ti
 | VD-4 | Test coverage   | Warning  | Edge case not tested                 | `tests/utils.test.ts` — missing empty dataset    |
 | VD-5 | Regression      | Warning  | Public interface changed             | `src/utils.ts:45` — added required `locale` param|
 | VD-6 | Executable: tests | Error | Test command failed                | `T-CSV-EXPORT-001` — exit 1; last 20 lines end with "1 failed, 4 passed" |
+| VD-7 | Executable: suite | Error | Full suite failed                  | exit 1; last 20 lines end with "3 failed, 112 passed" |
 
 ### Coverage Metrics
 
@@ -272,6 +283,7 @@ Multiple validations accumulate in the `validations/` directory with distinct ti
 | Requirements satisfied       | 6 (75%)     |
 | Requirements with tests      | 4 (50%)     |
 | Executable tests passed      | 3/4 (75%)   |
+| Full suite                   | Fail        |
 | Tasks complete               | 10/12 (83%) |
 | Changed files examined       | 5           |
 

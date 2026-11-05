@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires openspec CLI.
 metadata:
   author: jebucha
-  version: "1.3"
+  version: "1.4"
 ---
 
 Audit an existing change proposal for quality issues before implementation.
@@ -167,8 +167,11 @@ I'll evaluate the change artifacts for:
    - **Static-only command** — the Command is a linter, formatter, type checker, vet, or compile check
    - **Existential pass criterion** — the Pass criterion asserts only that a file or test exists
    - **Behavior-unrelated command** — the Command does not plausibly exercise the scenario's declared outcome. Evidence rule: quote the scenario's outcome and the block's Command side by side
+   - **Mocked subject (Pattern D)** — the unit under test is itself mocked or stubbed, so the assertion verifies only the mock. Warning (VL-n) "not a runtime behavior assertion", with the requirement excluded from the "Requirements with executable test requirements" numerator. Evidence rule: quote the scenario's outcome and the mocked subject side by side. Mocking only the subject's dependencies does not trigger Pattern D
 
    **Boundary rule** — a content assertion (e.g., grep, diff) that verifies the scenario's declared outcome IS a Test Requirement.
+
+   **Gate-field check** — a `regression:` entry whose value is not exactly `enabled`, or a `suite-timeout:` entry that is not an integer number of seconds, is one Info finding naming the malformed field. Neither field is required — absence of either or both produces no finding.
 
    All 6d findings are Warning or Info, never Error.
 
@@ -177,7 +180,7 @@ I'll evaluate the change artifacts for:
    Report each finding with:
    - **Error**: Broken task dependencies
    - **Warning**: Non-testable requirements, vague qualifiers, unresolved placeholders, missing/incomplete/malformed/fake test requirement blocks (6d)
-   - **Info**: Naming convention violations, missing `## Test Strategy` section (6d)
+   - **Info**: Naming convention violations, missing `## Test Strategy` section, malformed `regression:` / `suite-timeout:` gate fields (6d)
 
 7. **Run Feasibility Checks**
 

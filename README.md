@@ -206,6 +206,8 @@ The `/opsx-validate` command evaluates implementations across five dimensions:
 | **Code quality** | Are there obvious issues in changed files? |
 | **Regression safety** | Do changes break existing functionality patterns? |
 
+When the change's `## Test Strategy` declares `regression: enabled`, validation also runs the opt-in full-suite regression gate (step 6c): the Test Strategy's full-suite command runs once, verbatim from the project root, under a 600-second default suite timeout, with findings in Category `Executable: suite`.
+
 Findings are categorized by severity:
 - **Error** — Blocks readiness. Must be resolved before archiving.
 - **Warning** — Should be addressed. Proceed with caution.

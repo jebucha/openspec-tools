@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires openspec CLI.
 metadata:
   author: jebucha
-  version: "1.1"
+  version: "1.2"
 ---
 
 Validate a change's implementation against its proposal, specs, design, and audit findings.
@@ -112,6 +112,19 @@ After `/opsx-apply` implements a change, this skill independently verifies that 
 
    A scenario without a block falls back to the structural check (6a) unchanged.
 
+   **6c. Run Full-Suite Regression Gate**
+
+   Runs only when the `## Test Strategy` section declares `regression: enabled`; a `regression:` value that is not exactly `enabled` is treated as absent. Gate absent → no step, no `Full suite` row, no finding — the report is identical to the pre-gate behavior.
+
+   - **Check typed prerequisites first**: the Test Strategy's typed prerequisites (`env: <VAR>`, `file: <path>`, `cmd: <probe>`) must be met before the suite runs. Any unmet prerequisite → **Error** "prerequisite unmet"; the suite is not run; Coverage Metrics row `Full suite | Not run`
+   - **Execute**: run the Test Strategy's full-suite command verbatim from the project root — declared-only and read-only (no installs, no config or environment edits). 600-second default timeout, overridable by `suite-timeout: <seconds>` (a malformed `suite-timeout:` falls back to the 600-second default, noted in the evidence). Timeout → terminate and record an **Error** with partial output. The suite runs even if step 6b block commands failed
+   - **Classify**:
+     - Non-zero exit → **Error**, Category "Executable: suite" with the normal VD- sequence. Evidence: exit code + last 20 lines of output. Row: `Full suite | Fail`
+     - Exit 0 with skipped tests → one **Info** finding with the skip count (suite skips are not Errors). Row: `Full suite | Pass`
+     - Exit 0 with no skipped tests → no finding. Row: `Full suite | Pass`
+
+   The Coverage Metrics row `Full suite | Pass/Fail/Not run` is present only when the gate is enabled; `Not run` means the gate is enabled but the suite did not run for an unmet prerequisite.
+
 7. **Run Task Completion Checks**
 
    Parse tasks.md for task status:
@@ -214,6 +227,7 @@ After `/opsx-apply` implements a change, this skill independently verifies that 
     | Requirements satisfied | <count> (<percent>%) |
     | Requirements with tests | <count> (<percent>%) |
     | Executable tests passed | <count>/<total> (<percent>%) |
+    | Full suite | Pass / Fail / Not run (present only when the regression gate is enabled) |
     | Tasks complete | <count>/<total> (<percent>%) |
     | Changed files examined | <count> |
 
@@ -297,7 +311,7 @@ After `/opsx-apply` implements a change, this skill independently verifies that 
 **Artifacts checked:** proposal.md, design.md, specs/csv-export/spec.md, tasks.md
 
 ### Summary
-- Errors: 4
+- Errors: 5
 - Warnings: 2
 - Info: 1
 
@@ -311,6 +325,7 @@ After `/opsx-apply` implements a change, this skill independently verifies that 
 | VD-4 | Test coverage | Warning | Edge case not tested | `tests/utils.test.ts` — missing empty dataset scenario |
 | VD-5 | Regression safety | Warning | Existing `formatDate` signature changed | `src/utils.ts:45` — added required `locale` param |
 | VD-6 | Executable: tests | Error | Test command failed | `T-CSV-EXPORT-001` — exit 1; last 20 lines end with "1 failed, 4 passed" |
+| VD-7 | Executable: suite | Error | Full suite failed | exit 1; last 20 lines end with "3 failed, 112 passed" |
 
 ### Coverage Metrics
 
@@ -320,6 +335,7 @@ After `/opsx-apply` implements a change, this skill independently verifies that 
 | Requirements satisfied | 6 (75%) |
 | Requirements with tests | 4 (50%) |
 | Executable tests passed | 3/4 (75%) |
+| Full suite | Fail |
 | Tasks complete | 10/12 (83%) |
 | Changed files examined | 5 |
 
@@ -338,11 +354,11 @@ After `/opsx-apply` implements a change, this skill independently verifies that 
 - **Handle missing artifacts gracefully** — If an artifact doesn't exist, note it but continue validating what's available.
 - **Code quality is best-effort** — Basic checks only. Don't replace linters or type checkers.
 - **Regression safety is best-effort** — Check public interfaces and callers. Don't perform exhaustive impact analysis.
-- **Declared-only execution** — Step 6b runs the `Command` verbatim from the Test Requirement block. Never synthesize, broaden (e.g., to a full-suite run), or edit a declared command.
-- **Read-only with respect to the codebase** — Running a block must never require installing a dependency or editing config or environment state; report the unmet prerequisite instead of changing anything.
-- **Bounded execution** — Hard 120-second timeout per command (terminate; record an Error with partial output). At most 25 commands per execution, prioritized by spec order; summarize the remainder.
-- **Exit-code evidence** — Executable test findings cite the exit code and the last 20 lines of output; skip detection uses the declared Pass criterion with per-runner-family skip markers.
-- **Stable IDs for executable findings** — Executable test findings use Category "Executable: tests" with the normal VD- sequence so regression detection continues to work.
+- **Declared-only execution** — Step 6b runs the block's `Command` verbatim from the Test Requirement block. Never synthesize, broaden, or edit a declared command. The Test Strategy's full-suite command is the sole opt-in exception to the never-broaden rule: it runs only when the regression gate is enabled (step 6c), once, and is never used to broaden a block run.
+- **Read-only with respect to the codebase** — Running a block or the suite must never require installing a dependency or editing config or environment state; report the unmet prerequisite instead of changing anything.
+- **Bounded execution** — The 120-second timeout and the 25-command cap are scoped to step 6b block commands: hard 120-second timeout per command (terminate; record an Error with partial output), at most 25 commands per execution, prioritized by spec order, remainder summarized. The opt-in full-suite run (step 6c) does not count against the cap and runs under a 600-second default timeout, overridable by `suite-timeout: <seconds>`.
+- **Exit-code evidence** — Executable test and suite findings cite the exit code and the last 20 lines of output; skip detection uses the declared Pass criterion with per-runner-family skip markers.
+- **Stable IDs for executable findings** — Executable findings use Category "Executable: tests" for block commands and "Executable: suite" for the full-suite run, both with the normal VD- sequence so regression detection continues to work.
 - **Backward compatible** — Validation files without lifecycle headers function normally.
 - **Header parsing is position-sensitive** — Only parse `## Resolved` headers at the very start of the file.
 

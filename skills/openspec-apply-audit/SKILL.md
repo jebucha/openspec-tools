@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires openspec CLI.
 metadata:
   author: jebucha
-  version: "1.1"
+  version: "1.2"
 ---
 
 Apply audit findings and recommendations to an OpenSpec change's artifacts.
@@ -123,9 +123,10 @@ After `/opsx-audit` identifies issues in a change's artifacts (proposal, design,
    - Non-testable requirements / vague qualifiers → Rewrite with measurable/observable criteria while preserving intent (e.g., "fast" → "responds within 200ms under normal load")
    - Unresolved placeholders → Replace with concrete content derived from context, or ask user if unclear
    - Test requirement findings (6d):
-     - "missing test requirement" → Generate a complete Test Requirement block under the scenario from its WHEN/THEN: derive `File` (test file path + test ID) and `Command` (runnable invocation from the project root) from the Test Strategy's runner and naming conventions; `Pass` is a machine-checkable criterion (default: "exit code 0"). If design.md has no `## Test Strategy` section, create it first (runner, full-suite command, typed prerequisites) before generating any block
+     - **Level selection rule** — applies to both the missing-block generation branch and the fake-block rewrite branch: choose the lowest test level that genuinely exercises the declared outcome — a single function or module produces the outcome → unit test; a process, network, or persistence boundary is crossed → integration or e2e test. The generated Command is expected to finish within the 120-second per-block timeout; otherwise split the scenario or flag it for the human at the audit checkpoint. The level is a generation rule, not a block field
+     - "missing test requirement" → Generate a complete Test Requirement block under the scenario from its WHEN/THEN: derive `File` (test file path + test ID) and `Command` (runnable invocation from the project root) from the Test Strategy's runner and naming conventions; `Pass` is a machine-checkable criterion (default: "exit code 0"). If design.md has no `## Test Strategy` section, create it first (runner, full-suite command, typed prerequisites) before generating any block — never add `regression: enabled` or `suite-timeout:` to a Test Strategy you create; both fields are author-set only
      - "incomplete block" / "malformed ID" → Fill in the missing fields from the scenario and the Test Strategy; correct a malformed ID to `T-<CAPABILITY-UPPERCASE>-<NNN>`, keeping the existing capability prefix and number where possible
-     - "not a runtime behavior assertion" (fake block) → Dual branch: if the scenario has runtime behavior, replace the block with a genuine assertion that verifies the scenario's declared outcome; if the scenario is actually exempt (docs, config, contract-preserving refactor), delete the block and note the exemption
+     - "not a runtime behavior assertion" (fake block) → Dual branch: if the scenario has runtime behavior, replace the block with a genuine assertion that verifies the scenario's declared outcome; if the scenario is actually exempt (docs, config, contract-preserving refactor), delete the block and note the exemption. For a Pattern D finding (mocked subject), rewrite the block so the subject runs for real (dependencies may remain mocked), or raise the test level
 
    *Feasibility:*
    - Design proposes patterns inconsistent with codebase → Update design to follow established patterns, noting the convention observed

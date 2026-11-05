@@ -97,7 +97,90 @@ assert_validate_skill_guardrails() {
   has "$VALIDATE_SKILL" "Stable IDs for executable findings" "executable-runs guardrail: stable VD- IDs"
 }
 
-ALL_TESTS=(assert_audit_skill_step_6d assert_apply_audit_remediation assert_validate_skill_step_6b assert_validate_skill_guardrails)
+assert_validate_skill_step_6c() {
+  echo "Test: validate skill step 6c (full-suite regression gate)"
+  has "$VALIDATE_SKILL" "6c. Run Full-Suite Regression Gate" "step 6c heading present"
+  local lb lc l7
+  lb="$(line_of "$VALIDATE_SKILL" "6b. Run Executable Test Requirements")"
+  lc="$(line_of "$VALIDATE_SKILL" "6c. Run Full-Suite Regression Gate")"
+  l7="$(line_of "$VALIDATE_SKILL" "7. **Run Task Completion Checks**")"
+  if [[ -n "$lb" && -n "$lc" && -n "$l7" && "$lb" -lt "$lc" && "$lc" -lt "$l7" ]]; then
+    ok "6c ordered between 6b and step 7"
+  else
+    bad "6c ordered between 6b and step 7 (lines: 6b=${lb:-?} 6c=${lc:-?} step7=${l7:-?})"
+  fi
+  has "$VALIDATE_SKILL" "regression: enabled" "gate runs only when opted in"
+  has "$VALIDATE_SKILL" "treated as absent" "malformed regression value degrades to absent"
+  has "$VALIDATE_SKILL" "Executable: suite" "findings use the Executable: suite category"
+  has "$VALIDATE_SKILL" "600-second default timeout" "600s default suite timeout"
+  has "$VALIDATE_SKILL" "suite-timeout" "suite-timeout override named"
+  has "$VALIDATE_SKILL" "one **Info** finding with the skip count" "suite skips are one Info finding"
+  has "$VALIDATE_SKILL" "Full suite | Pass/Fail/Not run" "Full suite metrics row"
+  has "$VALIDATE_SKILL" "Gate absent → no step, no \`Full suite\` row, no finding" "gate-absent no-op"
+}
+
+assert_audit_skill_regression_fields() {
+  echo "Test: audit skill step 6d (regression gate fields check)"
+  has "$AUDIT_SKILL" 'regression:' "gate field: regression named"
+  has "$AUDIT_SKILL" 'suite-timeout:' "gate field: suite-timeout named"
+  has "$AUDIT_SKILL" 'not exactly `enabled`' "malformed regression value defined"
+  has "$AUDIT_SKILL" "not an integer number of seconds" "malformed suite-timeout defined"
+  has "$AUDIT_SKILL" "one Info finding naming the malformed field" "single Info finding on malformed field"
+  has "$AUDIT_SKILL" "Neither field is required" "neither field required"
+  has "$AUDIT_SKILL" "produces no finding" "absence produces no finding"
+}
+
+assert_apply_audit_level_rule() {
+  echo "Test: apply-audit skill 6d remediation (test-level selection rule)"
+  has "$APPLY_SKILL" "lowest test level that genuinely exercises the declared outcome" "lowest-genuine-level rule"
+  has "$APPLY_SKILL" "a single function or module" "unit level: single function or module"
+  has "$APPLY_SKILL" "unit test" "unit test named"
+  has "$APPLY_SKILL" "process, network, or persistence boundary" "boundary test"
+  has "$APPLY_SKILL" "integration or e2e test" "integration or e2e level named"
+  has "$APPLY_SKILL" "120-second per-block timeout" "generated Command must fit 120s"
+  has "$APPLY_SKILL" "split the scenario or flag it for the human at the audit checkpoint" "split or flag when it cannot fit"
+  has "$APPLY_SKILL" "The level is a generation rule, not a block field" "level is a generation rule"
+  has "$APPLY_SKILL" "both the missing-block generation branch" "rule applies to both branches"
+  has "$APPLY_SKILL" 'never add `regression: enabled`' "no auto-enable of the gate"
+}
+
+assert_audit_skill_pattern_d() {
+  echo "Test: audit skill step 6d (mocked-subject fake-block pattern, Pattern D)"
+  has "$AUDIT_SKILL" "Pattern D" "Pattern D named"
+  has "$AUDIT_SKILL" "the unit under test is itself mocked or stubbed" "mocked subject defined"
+  has "$AUDIT_SKILL" "the assertion verifies only the mock" "assertion verifies only the mock"
+  has "$AUDIT_SKILL" "the scenario's outcome and the mocked subject side by side" "side-by-side evidence rule"
+  has "$AUDIT_SKILL" "Mocking only the subject's dependencies does not trigger Pattern D" "dependency exception"
+  has "$AUDIT_SKILL" 'excluded from the "Requirements with executable test requirements" numerator' "numerator exclusion"
+}
+
+assert_apply_audit_pattern_d_remediation() {
+  echo "Test: apply-audit skill 6d remediation (Pattern D)"
+  has "$APPLY_SKILL" "Pattern D" "Pattern D remediation named"
+  has "$APPLY_SKILL" "rewrite the block so the subject runs for real" "rewrite so the subject runs for real"
+  has "$APPLY_SKILL" "dependencies may remain mocked" "dependencies may remain mocked"
+  has "$APPLY_SKILL" "or raise the test level" "or raise the test level"
+}
+
+assert_no_skill_writes_gate_fields() {
+  echo "Test: no skill writes or modifies the gate fields (author-set only)"
+  # apply-audit is the only skill that creates a Test Strategy section; it must
+  # carry the explicit prohibition that it never adds the gate fields there.
+  has "$APPLY_SKILL" 'never add `regression: enabled` or `suite-timeout:`' "apply-audit: never adds the gate fields"
+  has "$APPLY_SKILL" "both fields are author-set only" "apply-audit: gate fields author-set only"
+  # No skill may carry a bare instruction to write or set the gate fields into a
+  # Test Strategy section. The apply-audit prohibition above is "never add ...",
+  # which the write/set patterns below intentionally do not match.
+  local f tag p
+  for f in "$AUDIT_SKILL" "$APPLY_SKILL" "$VALIDATE_SKILL"; do
+    tag="$(basename "$(dirname "$f")")"
+    for p in 'add `regression: enabled` to the Test Strategy' 'set `regression: enabled`' 'add `suite-timeout:` to the Test Strategy' 'set `suite-timeout:`'; do
+      lacks "$f" "$p" "$tag: no write/set instruction for $p"
+    done
+  done
+}
+
+ALL_TESTS=(assert_audit_skill_step_6d assert_apply_audit_remediation assert_validate_skill_step_6b assert_validate_skill_guardrails assert_validate_skill_step_6c assert_audit_skill_regression_fields assert_apply_audit_level_rule assert_audit_skill_pattern_d assert_apply_audit_pattern_d_remediation assert_no_skill_writes_gate_fields)
 
 if [[ $# -eq 0 ]]; then
   for t in "${ALL_TESTS[@]}"; do "$t"; done
