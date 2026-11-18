@@ -1,11 +1,11 @@
 ---
 name: openspec-audit-change
-description: Audit an existing change proposal for accuracy, completeness, validity, feasibility, and coherence before implementation. Use after opsx-propose to review generated artifacts.
+description: Audit an existing change proposal for accuracy, completeness, validity, feasibility, coherence, and security before implementation. Use after opsx-propose to review generated artifacts.
 license: MIT
 compatibility: Requires openspec CLI.
 metadata:
   author: jebucha
-  version: "1.4"
+  version: "1.5"
 ---
 
 Audit an existing change proposal for quality issues before implementation.
@@ -16,6 +16,7 @@ I'll evaluate the change artifacts for:
 - **Validity**: Do artifacts follow structural conventions and contain well-formed content?
 - **Feasibility**: Is the design achievable given the actual codebase?
 - **Coherence**: Do proposal, design, and tasks align in scope and intent?
+- **Security**: Are credentials, secrets, and attack surface handled safely?
 
 ---
 
@@ -23,7 +24,7 @@ I'll evaluate the change artifacts for:
 
 **Output Constraints**:
 - Cap findings at **50 total**. If more are detected, include the top 50 by severity (Errors first, then Warnings, then Info) and add an overflow summary line: "N additional findings omitted (X warnings, Y info)."
-- Assign each finding a **stable ID** prefixed by category: `AC-1` (Accuracy), `CM-1` (Completeness), `VL-1` (Validity), `FS-1` (Feasibility), `CO-1` (Coherence). These IDs are used by `/opsx-apply-audit` to reference specific findings.
+- Assign each finding a **stable ID** prefixed by category: `AC-1` (Accuracy), `CM-1` (Completeness), `VL-1` (Validity), `FS-1` (Feasibility), `CO-1` (Coherence), `SC-1` (Security). These IDs are used by `/opsx-apply-audit` to reference specific findings.
 
 **Steps**
 
@@ -236,81 +237,107 @@ I'll evaluate the change artifacts for:
    - Flag tasks that are too coarse to be actionable (e.g., "implement the entire authentication system" as a single task)
    - Flag tasks that are trivially fine-grained to the point of noise (e.g., "add a blank line")
 
-   **8d. Security surface awareness** (apply only when the change touches auth, data handling, external I/O, or user input)
-   - Does the design address input validation for new entry points?
-   - Are there tasks for error handling on new failure modes?
-   - If new external communication is introduced, is TLS/encryption mentioned?
-   - If new credentials or secrets are involved, does the design reference a secrets manager?
-   - Flag omissions as Warnings — don't block, but ensure awareness
-
    Report each finding with:
    - **Error**: Design exceeds proposal scope significantly, task ordering makes implementation impossible
-   - **Warning**: Spec requirements with no design support, security surface omissions, overly coarse tasks
+   - **Warning**: Spec requirements with no design support, overly coarse tasks
    - **Info**: Minor scope observations, trivially fine-grained tasks
 
-9. **Produce Structured Output**
+9. **Run Security Checks**
 
-   Display the audit results in a structured format:
+   Evaluate whether the plan handles credentials and attack surface safely. 9a and 9b run on every change, whatever surfaces it touches; 9c–9e apply only when the change touches auth, user input, data storage, external communication, secrets, permissions, or crypto.
 
-   ```
-   ## Audit Report: <change-name>
+   **9a. Secrets in artifacts** (always run)
+   - Pattern-scan every change artifact (proposal, design, specs, tasks) for the secret pattern set
+   - **Secret pattern set** (shared with `/opsx-validate` step 8b — keep this block verbatim in both skills):
+     - Private-key headers, matched strictly as `-----BEGIN[A-Z ]*PRIVATE KEY-----`
+     - Provider-prefixed tokens: `AKIA`, `ghp_`, `github_pat_`, `xox[baprs]-`, `sk_live_`, `sk-ant-`
+     - Credential-named assignments (`password`, `secret`, `token`, `api_key`, `private_key`) with a literal value of 8+ characters
+     - Embedded-credential URLs (`scheme://user:pass@`)
+   - **Placeholder exemptions** (never match): `<…>`, `${…}`, `$VAR`, environment lookups, `changeme`, and values containing `example`, `dummy`, `xxx`, or `redacted`
+   - A credential-looking value in any artifact is an **Error** — cite the artifact, line, and pattern type only; never the value
 
-   **Schema:** <schema-name>
-   **Model:** <model that performed the audit>
-   **Artifacts checked:** <list of artifacts that were read>
+   **9b. Secret handling planned** (always run)
+   - If the proposal or design introduces an API key, token, password, or certificate, check it names a runtime source (environment variable or secrets manager)
+   - No stated source → Warning "secret handling not planned"
 
-   ### Summary
-   - Errors: <count>
-   - Warnings: <count>
-   - Info: <count>
+   **9c. Untrusted input**
+   - New entry point that accepts external input with no validation planned in design or tasks → Warning
+   - External input built into shell, SQL, eval, or file paths by string concatenation → Warning
 
-   ---
+   **9d. Weakened security controls**
+   - Design disables TLS verification, bypasses an auth check, or widens file permissions or network exposure without a stated rationale → Warning
 
-   ### Findings
+   **9e. Escalation to the full security audit** (one Info per change)
+   - When the change touches auth, crypto, permissions, or secrets, recommend `/opsx-security-audit` for exhaustive analysis
 
-   | ID | Category | Severity | Description | Evidence |
-   |----|----------|----------|-------------|----------|
-   | AC-1 | Accuracy | Error | Missing spec for `pdf-export` | Listed in proposal "New Capabilities" but no file at `specs/pdf-export/spec.md` |
-   | CM-1 | Completeness | Error | Requirement has no scenarios | `specs/csv-export/spec.md` → "User can filter exports" |
-   | ... | ... | ... | ... | ... |
+   Report each finding with:
+   - **Error**: Secret in artifacts (9a)
+   - **Warning**: Secret handling not planned (9b), untrusted input (9c), weakened control (9d)
+   - **Info**: Escalation to `/opsx-security-audit` (9e)
 
-   ### Coverage Metrics
+10. **Produce Structured Output**
 
-   | Metric | Value |
-   |--------|-------|
-   | Total requirements | <count> |
-   | Total tasks | <count> |
-   | Requirements with ≥1 task | <count> (<percent>%) |
-   | Tasks with mapped requirement | <count> (<percent>%) |
-   | Duplications found | <count> |
-   | Ambiguities found | <count> |
-   | Requirements with executable test requirements | <count> (<percent>%) |
+    Display the audit results in a structured format:
 
-   ---
+    ```
+    ## Audit Report: <change-name>
 
-   ### Verdict
-   ```
+    **Schema:** <schema-name>
+    **Model:** <model that performed the audit>
+    **Artifacts checked:** <list of artifacts that were read>
 
-   **Verdict based on findings:**
-   - If errors exist: "Cannot proceed to implementation. Resolve errors first."
-   - If only warnings: "Can proceed with caution. Consider addressing warnings."
-   - If only info or clean: "Ready for implementation."
-   - If no artifacts found: "No artifacts to audit. Create the change first."
+    ### Summary
+    - Errors: <count>
+    - Warnings: <count>
+    - Info: <count>
 
-10. **Detect regressions from prior resolved audits**
+    ---
+
+    ### Findings
+
+    | ID | Category | Severity | Description | Evidence |
+    |----|----------|----------|-------------|----------|
+    | AC-1 | Accuracy | Error | Missing spec for `pdf-export` | Listed in proposal "New Capabilities" but no file at `specs/pdf-export/spec.md` |
+    | CM-1 | Completeness | Error | Requirement has no scenarios | `specs/csv-export/spec.md` → "User can filter exports" |
+    | ... | ... | ... | ... | ... |
+
+    ### Coverage Metrics
+
+    | Metric | Value |
+    |--------|-------|
+    | Total requirements | <count> |
+    | Total tasks | <count> |
+    | Requirements with ≥1 task | <count> (<percent>%) |
+    | Tasks with mapped requirement | <count> (<percent>%) |
+    | Duplications found | <count> |
+    | Ambiguities found | <count> |
+    | Requirements with executable test requirements | <count> (<percent>%) |
+
+    ---
+
+    ### Verdict
+    ```
+
+    **Verdict based on findings:**
+    - If errors exist: "Cannot proceed to implementation. Resolve errors first."
+    - If only warnings: "Can proceed with caution. Consider addressing warnings."
+    - If only info or clean: "Ready for implementation."
+    - If no artifacts found: "No artifacts to audit. Create the change first."
+
+11. **Detect regressions from prior resolved audits**
 
     Before persisting the new audit report, check if any prior audits in `openspec/changes/<name>/audits/` have been resolved. If so, compare the new findings against previously resolved findings to detect regressions.
 
-    **10a. Parse resolved findings from prior audits**
+    **11a. Parse resolved findings from prior audits**
     - Look in `openspec/changes/<name>/audits/` for audit files that have a `## Resolved` header
     - From each resolved audit, extract the finding IDs listed under the `### Resolved` section (e.g., `- AC-1: ...`)
     - Build a set of resolved finding IDs mapped to their source audit filename
 
-    **10b. Compare against new findings**
+    **11b. Compare against new findings**
     - For each finding in the new audit report, check if its stable ID (e.g., `AC-1`) appears in the resolved findings set
     - A match indicates a regression — the same issue was fixed but has reappeared
 
-    **10c. Generate Regressions section**
+    **11c. Generate Regressions section**
     - If any regressions are found, insert a `### Regressions` section in the audit report output, between `### Findings` and `### Coverage Metrics`
     - Format as a table:
 
@@ -326,10 +353,10 @@ I'll evaluate the change artifacts for:
     - Include regressions in the overall warning count in the `### Summary` section
     - If no regressions are found, skip the section entirely
 
-    **10d. No prior resolved audits**
+    **11d. No prior resolved audits**
     - If no audits with `## Resolved` headers exist, skip regression detection entirely
 
-11. **Persist the audit report**
+12. **Persist the audit report**
 
     Save the structured output to a file within the change directory:
 
@@ -349,7 +376,7 @@ I'll evaluate the change artifacts for:
 
     Announce: "Audit saved to `<path>`"
 
-12. **Offer follow-up actions**
+13. **Offer follow-up actions**
 
     After displaying the report, frame this as a checkpoint — the user decides — and offer, in order:
     - "Run `/opsx-apply-audit` in a fresh session (any model) to apply fixes to the artifacts."
@@ -404,7 +431,7 @@ Ready for implementation.
 **Artifacts checked:** proposal.md, design.md, specs/csv-export/spec.md, tasks.md
 
 ### Summary
-- Errors: 5
+- Errors: 6
 - Warnings: 4
 - Info: 2
 
@@ -423,6 +450,7 @@ Ready for implementation.
 | FS-2 | Feasibility | Info | New dependency | `puppeteer` not in package.json |
 | CO-1 | Coherence | Error | Task ordering violation | Task 2 uses `src/templates/base.ts` created in Task 5 |
 | CO-2 | Coherence | Error | Design exceeds proposal scope | "notification system" not in proposal |
+| SC-1 | Security | Error | Secret in artifact | `design.md` L42, pattern type: provider-prefixed token |
 
 ### Coverage Metrics
 
@@ -452,7 +480,8 @@ Cannot proceed to implementation. Resolve errors first.
 - **Use path-aware tools** — Use glob for finding spec files, not hardcoded paths with forward slashes
 - **Be thorough but efficient** — Check all artifacts that exist, but don't spend excessive time on large codebases
 - **Feasibility checks are best-effort** — Reading source files to verify design claims is valuable but not exhaustive. Check the specific files and symbols referenced; don't audit the entire codebase.
-- **Security checks are contextual** — Only apply security surface checks (8d) when the change touches auth, user input, data storage, external communication, or secrets. Don't flag security on purely cosmetic or refactoring changes.
+- **Security checks are partly contextual** — 9a (secrets in artifacts) and 9b (secret handling planned) run on every change. 9c–9e apply only when the change touches a security surface: auth, user input, data storage, external communication, secrets, permissions, or crypto. Don't flag security on purely cosmetic or refactoring changes.
+- **Never reproduce secret values** — A secrets finding's evidence is the file, line, and pattern type only. Never echo any part of the matched value in the report, the persisted audit file, or chat.
 - **Pattern checks require evidence** — When flagging pattern inconsistency, cite the existing files you read and the specific pattern observed. Don't assert conventions without checking.
 - **Duplication requires semantic overlap** — Don't flag requirements as duplicates just because they share a few words. They must describe functionally overlapping behavior.
 - **Terminology drift is cross-file only** — Don't flag term variations within a single file. Only flag when different artifacts use different terms for the same concept.

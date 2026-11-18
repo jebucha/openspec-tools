@@ -46,7 +46,7 @@ Examples:
 
 ## What It Does
 
-The audit evaluates artifacts across five categories. Each finding is assigned a stable ID prefixed by category.
+The audit evaluates artifacts across six categories. Each finding is assigned a stable ID prefixed by category.
 
 ### Accuracy (AC-)
 
@@ -91,7 +91,16 @@ Checks whether proposal, design, and tasks align in scope and intent.
 - **Proposal-to-design scope alignment** — flags design elements not mentioned in the proposal (scope creep) and proposal goals with no design coverage
 - **Spec-to-design consistency** — flags requirements that have no plausible design support
 - **Task ordering and buildability** — flags tasks that depend on output from a later task, or tasks too coarse to be actionable
-- **Security surface awareness** — when the change touches auth, user input, data handling, or external I/O, checks that input validation, error handling, TLS, and secrets management are addressed
+
+### Security (SC-)
+
+Checks whether the plan handles credentials and attack surface safely.
+
+- **Secrets in artifacts (9a, always run)** — a credential-looking value in any change artifact (proposal, design, specs, tasks) is an Error; cited by artifact, line, and pattern type only, never the value
+- **Secret handling planned (9b, always run)** — a new credential names its runtime source (environment variable or secrets manager); a missing source is a Warning
+- **Untrusted input (9c)** — new entry points plan validation for external input (Warning)
+- **Weakened security controls (9d)** — a design that disables TLS verification, bypasses an auth check, or widens file permissions or network exposure carries a stated rationale (Warning)
+- **Escalation (9e)** — one Info per change recommending `/opsx-security-audit` when the change touches auth, crypto, permissions, or secrets
 
 ## Severity Levels
 
@@ -166,7 +175,8 @@ The persisted file enables:
 - **Evidence required** — Every finding must cite specific evidence: a file path, line reference, or quoted text. No finding without proof.
 - **50-finding cap** — Capped at 50 findings, prioritized Errors → Warnings → Info. Overflow findings are summarized, not silently dropped.
 - **Feasibility checks are best-effort** — Checks the specific files and symbols referenced in artifacts; does not audit the entire codebase.
-- **Security checks are contextual** — Security surface checks (section 8d) only apply when the change touches auth, user input, data storage, external communication, or secrets. Purely cosmetic or refactoring changes are not flagged.
+- **Security checks are partly contextual** — 9a (secrets in artifacts) and 9b (secret handling planned) run on every change; 9c–9e apply only when the change touches auth, user input, data storage, external communication, secrets, permissions, or crypto. Purely cosmetic or refactoring changes are not flagged.
+- **Never reproduce secret values** — A secrets finding's evidence is the file, line, and pattern type only. No part of the matched value is written to the report or the persisted audit file.
 - **Duplication requires semantic overlap** — Requirements are only flagged as duplicates if they describe functionally overlapping behavior, not just shared words.
 - **Terminology drift is cross-file only** — Term variations within a single artifact are not flagged; only when different artifacts use different terms for the same concept.
 - **Missing artifacts are noted, not fatal** — The audit continues on whatever artifacts exist, flagging absent ones as Errors.

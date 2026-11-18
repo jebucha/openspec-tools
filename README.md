@@ -179,7 +179,7 @@ openspec-tools/
 
 ## Audit Categories
 
-The `/opsx-audit` command evaluates artifacts across five dimensions:
+The `/opsx-audit` command evaluates artifacts across six dimensions:
 
 | Category | What it checks |
 |----------|---------------|
@@ -187,7 +187,8 @@ The `/opsx-audit` command evaluates artifacts across five dimensions:
 | **Completeness** | Required artifacts present; requirements have scenarios; tasks have spec coverage; no empty sections |
 | **Validity** | Requirements are testable; task dependencies resolve; naming conventions followed |
 | **Feasibility** | Design references match actual codebase; dependencies are available; patterns align with conventions |
-| **Coherence** | Proposal ↔ design scope aligned; specs have design support; tasks ordered buildably; security surface covered |
+| **Coherence** | Proposal ↔ design scope aligned; specs have design support; tasks ordered buildably |
+| **Security** | No secrets in artifacts; secret handling planned; untrusted input validated; weakened controls justified; escalation to the full security audit |
 
 Findings are categorized by severity:
 - **Error** — Blocks implementation. Must be resolved.
@@ -196,7 +197,7 @@ Findings are categorized by severity:
 
 ## Validation Dimensions
 
-The `/opsx-validate` command evaluates implementations across five dimensions:
+The `/opsx-validate` command evaluates implementations across six dimensions:
 
 | Dimension | What it checks |
 |-----------|---------------|
@@ -204,6 +205,7 @@ The `/opsx-validate` command evaluates implementations across five dimensions:
 | **Test coverage** | Do tests exist for new requirements and edge cases? |
 | **Task completion** | Are all tasks completed and reflected in the codebase? |
 | **Code quality** | Are there obvious issues in changed files? |
+| **Security** | Any secrets in added lines or new files; code-level security issues (injection, disabled TLS, unpinned dependencies); does the code deliver the design's promised secret source and validation? |
 | **Regression safety** | Do changes break existing functionality patterns? |
 
 When the change's `## Test Strategy` declares `regression: enabled`, validation also runs the opt-in full-suite regression gate (step 6c): the Test Strategy's full-suite command runs once, verbatim from the project root, under a 600-second default suite timeout, with findings in Category `Executable: suite`.

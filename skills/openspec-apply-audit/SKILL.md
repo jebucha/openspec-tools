@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires openspec CLI.
 metadata:
   author: jebucha
-  version: "1.2"
+  version: "1.3"
 ---
 
 Apply audit findings and recommendations to an OpenSpec change's artifacts.
@@ -82,7 +82,7 @@ After `/opsx-audit` identifies issues in a change's artifacts (proposal, design,
 
 5. **Plan remediation from audit findings**
 
-   Parse findings by their stable IDs (AC-1, CM-1, etc.) from the audit report.
+   Parse findings by their stable IDs (AC-1, CM-1, SC-1, etc.) from the audit report.
 
    For each audit finding, determine the appropriate fix:
 
@@ -107,6 +107,9 @@ After `/opsx-audit` identifies issues in a change's artifacts (proposal, design,
    - Design exceeds proposal scope → Remove out-of-scope elements from design, or ask user if proposal should be expanded
    - Task ordering makes implementation impossible → Reorder tasks so dependencies are satisfied before dependents
    - Overly coarse tasks → Break into smaller actionable sub-tasks
+
+   *Security:*
+   - Secret in an artifact → Replace the literal with an environment-variable or secrets-manager reference (e.g., `$SERVICE_API_KEY`), and tell the user to rotate the exposed credential — it was written to disk and possibly committed. Never echo the value in the plan, diff summary, or any output
 
    **Warnings (should fix):**
 
@@ -133,8 +136,12 @@ After `/opsx-audit` identifies issues in a change's artifacts (proposal, design,
 
    *Coherence:*
    - Spec requirements with no design support → Add design mechanism to satisfy the requirement
-   - Security surface omissions → Add appropriate tasks (input validation, error handling, encryption) for new attack surface
    - Scope creep in design (minor) → Flag and trim, or ask user
+
+   *Security:*
+   - Secret handling not planned → Name the credential's runtime source (environment variable or secrets manager) in the design and add a task to wire it up
+   - Untrusted input without planned validation → Add a validation task and a design note for the new entry point
+   - Weakened security control → Ask the user whether to justify the weakening in the design or remove it — never decide on their behalf
 
    **Info (optional, apply if straightforward):**
    - Naming convention violations → Rename to kebab-case, update all references
@@ -143,6 +150,7 @@ After `/opsx-audit` identifies issues in a change's artifacts (proposal, design,
    - Trivially fine-grained tasks → Merge into parent task
    - Terminology drift → Standardize on the canonical term (first-used or most precise) across all artifacts
    - Minor duplications → Consolidate if straightforward; leave if they serve different contexts
+   - Security escalation to `/opsx-security-audit` → No fix needed. Note it in the follow-up offers
 
    Present the full remediation plan to the user before applying any changes.
 
@@ -316,6 +324,7 @@ What would you like to do?
 - **Backward compatible** — audit files without lifecycle headers are always treated as Pending
 - **Header parsing is position-sensitive** — only parse `## Resolved` headers at the very start of the file; do not match these patterns in the body of the audit report
 - **Prepend-only mutations** — when writing a resolution header, always prepend to the file; never modify or delete existing content
+- **Never reproduce secret values in the plan, diff summary, or resolution header** — a secrets fix is described by the file, line, and pattern type only
 
 **Fluid Workflow Integration**
 

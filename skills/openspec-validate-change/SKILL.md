@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires openspec CLI.
 metadata:
   author: jebucha
-  version: "1.2"
+  version: "1.3"
 ---
 
 Validate a change's implementation against its proposal, specs, design, and audit findings.
@@ -138,7 +138,9 @@ After `/opsx-apply` implements a change, this skill independently verifies that 
    - The task description
    - Evidence: task number, checkbox state, and whether code changes are present
 
-8. **Run Code Quality Checks (best-effort)**
+8. **Run Code Quality and Security Checks**
+
+   **8a. Code quality** (best-effort)
 
    For changed source files, check for obvious issues:
    - Unused imports
@@ -149,6 +151,20 @@ After `/opsx-apply` implements a change, this skill independently verifies that 
    These are Info-level findings — not blocking, but worth noting.
 
    **Scope:** Only check files touched by this change. Don't audit the entire codebase.
+
+   **8b. Security** (best-effort; carries its own severities — not bound to Code quality's Info-only rule)
+
+   - **Secret scan (Error, Category `Security`)** — every change: scan the added lines of the changed files (obtained via `git diff -U0`) and newly added files (read in full) from step 4's changed-file set against the secret pattern set. Flag newly added credential files (`.env`, `.env.*`, `*.pem`, `*.key`, `id_rsa*`, `*.p12`, `*.pfx`); template variants (`.env.example`, `.env.sample`, `.env.template`) are exempt. Each hit is an Error citing the file, line, and pattern type only — never the value
+   - **Secret pattern set** (shared with `/opsx-audit` step 9a — keep this block verbatim in both skills):
+     - Private-key headers, matched strictly as `-----BEGIN[A-Z ]*PRIVATE KEY-----`
+     - Provider-prefixed tokens: `AKIA`, `ghp_`, `github_pat_`, `xox[baprs]-`, `sk_live_`, `sk-ant-`
+     - Credential-named assignments (`password`, `secret`, `token`, `api_key`, `private_key`) with a literal value of 8+ characters
+     - Embedded-credential URLs (`scheme://user:pass@`)
+   - **Placeholder exemptions** (never match): `<…>`, `${…}`, `$VAR`, environment lookups, `changeme`, and values containing `example`, `dummy`, `xxx`, or `redacted`
+   - **Code-level checks (Warning, Category `Security`)** — on files the change touches: untrusted input concatenated into shell, SQL, eval, or file paths; disabled TLS verification or bypassed auth checks; new dependencies without pinned versions; remote scripts piped to a shell
+   - **Plan follow-through (Warning, Category `Security`)** — verify the code delivers what the design promised: the stated secret source (environment variable or secrets manager, not a literal or committed config file) and the planned input validation. Also check the `SC-` findings of the newest audit in `openspec/changes/<name>/audits/` without a `## Resolved` header — one the code still doesn't address is a Warning citing the finding next to the code location. If no audit exists, only the design comparison runs
+   - **Escalation (one Info per change, Category `Security`)** — when the changed files touch auth, crypto, permissions, or secrets, recommend `/opsx-security-audit` for exhaustive analysis
+   - **Scanner** — an already-installed secret scanner (e.g., `gitleaks`) may supplement the scan, run only with its redaction enabled. Never install, download, or update a scanner; a missing scanner produces no finding
 
 9. **Run Regression Safety Checks (best-effort)**
 
@@ -311,7 +327,7 @@ After `/opsx-apply` implements a change, this skill independently verifies that 
 **Artifacts checked:** proposal.md, design.md, specs/csv-export/spec.md, tasks.md
 
 ### Summary
-- Errors: 5
+- Errors: 6
 - Warnings: 2
 - Info: 1
 
@@ -326,6 +342,7 @@ After `/opsx-apply` implements a change, this skill independently verifies that 
 | VD-5 | Regression safety | Warning | Existing `formatDate` signature changed | `src/utils.ts:45` — added required `locale` param |
 | VD-6 | Executable: tests | Error | Test command failed | `T-CSV-EXPORT-001` — exit 1; last 20 lines end with "1 failed, 4 passed" |
 | VD-7 | Executable: suite | Error | Full suite failed | exit 1; last 20 lines end with "3 failed, 112 passed" |
+| VD-8 | Security | Error | Secret in added line | `src/config.ts:12`, pattern type: credential-named assignment |
 
 ### Coverage Metrics
 
@@ -353,9 +370,11 @@ After `/opsx-apply` implements a change, this skill independently verifies that 
 - **Don't be prescriptive** — Focus on structural issues and spec gaps. Use Info level for subjective observations.
 - **Handle missing artifacts gracefully** — If an artifact doesn't exist, note it but continue validating what's available.
 - **Code quality is best-effort** — Basic checks only. Don't replace linters or type checkers.
+- **Security check is best-effort and scoped to changed files** — Step 8b covers only the files the change touches and is a floor, not exhaustive vulnerability analysis. Exhaustive analysis belongs to `/opsx-security-audit`.
+- **Never reproduce secret values** — A secrets finding's evidence is the file, line, and pattern type only. Never echo any part of the matched value in the report, the persisted validation file, or chat.
 - **Regression safety is best-effort** — Check public interfaces and callers. Don't perform exhaustive impact analysis.
 - **Declared-only execution** — Step 6b runs the block's `Command` verbatim from the Test Requirement block. Never synthesize, broaden, or edit a declared command. The Test Strategy's full-suite command is the sole opt-in exception to the never-broaden rule: it runs only when the regression gate is enabled (step 6c), once, and is never used to broaden a block run.
-- **Read-only with respect to the codebase** — Running a block or the suite must never require installing a dependency or editing config or environment state; report the unmet prerequisite instead of changing anything.
+- **Read-only with respect to the codebase** — Running a block or the suite must never require installing a dependency or editing config or environment state; report the unmet prerequisite instead of changing anything. This also covers secret scanners: step 8b never installs, downloads, or updates one — an already-installed scanner may be used with redaction enabled only, and a missing scanner produces no finding.
 - **Bounded execution** — The 120-second timeout and the 25-command cap are scoped to step 6b block commands: hard 120-second timeout per command (terminate; record an Error with partial output), at most 25 commands per execution, prioritized by spec order, remainder summarized. The opt-in full-suite run (step 6c) does not count against the cap and runs under a 600-second default timeout, overridable by `suite-timeout: <seconds>`.
 - **Exit-code evidence** — Executable test and suite findings cite the exit code and the last 20 lines of output; skip detection uses the declared Pass criterion with per-runner-family skip markers.
 - **Stable IDs for executable findings** — Executable findings use Category "Executable: tests" for block commands and "Executable: suite" for the full-suite run, both with the normal VD- sequence so regression detection continues to work.

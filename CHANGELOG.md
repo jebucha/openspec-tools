@@ -1,5 +1,21 @@
 # https://github.com/jebucha/openspec-tools.git
 
+## 1.6 — 2026-11-17
+
+### Added
+- **Security audit category (`SC-`)** — `openspec-audit-change` now evaluates a sixth category, Security. Step 8d "Security surface awareness" moves out of Coherence into a new top-level step 9 "Run Security Checks" (9a–9e). 9a (secrets in artifacts, Error) and 9b (secret handling planned, Warning) run on every change; 9c (untrusted input), 9d (weakened controls), and 9e (one Info per change, escalation to `/opsx-security-audit`) run contextually against the trigger list (auth, user input, data storage, external communication, secrets, permissions, crypto). A single secret pattern set, with placeholder exemptions, is duplicated verbatim in the audit and validate skills and guarded by a drift-detecting content test.
+- **Security validation check** — `openspec-validate-change` step 8 splits into 8a Code quality (unchanged, Info-only) and 8b Security. 8b scans the change's added lines and newly added files with the shared pattern set (Error, blocks archive), flags newly added credential files (template variants exempt), checks code-level issues (injection, disabled TLS/auth, unpinned dependencies, remote scripts piped to a shell) as Warnings, verifies the code delivers the design's promised secret source and validation, and raises one escalation Info. A secret scanner is used only if already installed (redaction enabled); one is never installed.
+- **Security remediation** — `openspec-apply-audit` remediates `SC-` findings: replaces a literal secret with an environment-variable or secrets-manager reference and tells the user to rotate the exposed credential, adds secret-handling and validation coverage, and requires an explicit user decision for a weakened control.
+- **Never-reproduce-secret-values** — A guardrail in all three skills: a secret value is never echoed in a report, persisted file, plan, diff summary, or resolution header. Findings cite file, line, and pattern type only.
+- **tests/test_skill_content.sh** — New assertions for the Security category, Coherence without security, the validate security check, the no-scanner-install rule, the shared pattern set, escalation, apply-audit remediation, the never-reproduce guardrail, and the README documentation.
+
+### Changed
+- **openspec-audit-change skill** — 1.4 → 1.5: new step 9, later steps renumbered (9→10 … 12→13, 10a–10d→11a–11d), `SC-1` added to Output Constraints, guardrails rewritten, Security example row.
+- **openspec-validate-change skill** — 1.2 → 1.3: step 8 renamed "Run Code Quality and Security Checks" and split into 8a/8b (no top-level renumbering), Category `Security`, redaction and no-install guardrails, Security Error row in the Fail example.
+- **openspec-apply-audit skill** — 1.2 → 1.3: Security remediation block, `SC-1` in ID parsing, "Security surface omissions" removed from Coherence, never-reproduce guardrail.
+- **README.md (workflow)** — Audit Categories and Validation Dimensions now list six dimensions, including Security; the Coherence row no longer claims "security surface covered".
+- **Stable-ID migration note** — Security findings formerly reported as Coherence `CO-n` are now `SC-n`. Regression detection matches by stable ID, so a resolved `CO-n` security finding from an earlier audit will not match a new `SC-n` ID (a one-time gap, deliberately not bridged).
+
 ## 1.5 — 2026-10-09 – 2026-11-05
 
 ### Added

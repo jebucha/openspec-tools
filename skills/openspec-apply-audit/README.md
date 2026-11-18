@@ -66,6 +66,9 @@ For each finding, determines the appropriate fix:
 | Missing test requirement (6d) | Generates a Test Requirement block from the scenario's WHEN/THEN at the lowest test level that genuinely exercises the outcome (single function or module → unit test; process, network, or persistence boundary → integration or e2e test); `File` and `Command` derived from the Test Strategy; the `## Test Strategy` section is created first when absent — never adding `regression: enabled` or `suite-timeout:` (both fields are author-set only) |
 | Incomplete / malformed test requirement block (6d) | Fills in the missing fields; corrects the ID to `T-<CAPABILITY-UPPERCASE>-<NNN>` |
 | Fake test requirement block (6d) | Replaces the block with a genuine assertion, or deletes it (noting the exemption) when the scenario is actually exempt; for a Pattern D finding (mocked subject), rewrites the block so the subject runs for real (dependencies may remain mocked), or raises the test level |
+| Secret in an artifact (Security) | Replaces the literal with an environment-variable or secrets-manager reference and tells the user to rotate the exposed credential; the value is never echoed |
+| Secret handling not planned / untrusted input (Security) | Adds the credential's runtime source and the validation coverage to the design and tasks |
+| Weakened security control (Security) | Asks the user whether to justify the weakening in the design or remove it — never decides on their behalf |
 
 The full plan is presented to the user for confirmation before any changes are made.
 

@@ -48,7 +48,7 @@ Examples:
 
 ## What It Does
 
-The validation examines the implementation across five dimensions. Each finding is assigned a stable ID prefixed with `VD-`.
+The validation examines the implementation across six dimensions. Each finding is assigned a stable ID prefixed with `VD-`.
 
 ### Spec Compliance
 
@@ -98,11 +98,21 @@ Checks whether all tasks from tasks.md are completed and reflected in the codeba
 
 ### Code Quality (best-effort)
 
-Basic checks for obvious issues in changed files.
+Basic checks for obvious issues in changed files (step 8a).
 
 - Unused imports, dead code, obvious type mismatches
 - Inconsistent patterns with surrounding code
 - Info-level findings — not blocking
+
+### Security (best-effort)
+
+Step 8b checks the files the change touches (findings use Category `Security`).
+
+- **Secret scan** — added lines and newly added files are scanned with the shared secret pattern set; newly added credential files (`.env`, `*.pem`, `*.key`, `id_rsa*`, `*.p12`, `*.pfx`) are flagged, template variants (`.env.example`, `.env.sample`, `.env.template`) exempt. Each hit is an **Error** that blocks archive
+- **Code-level checks** — untrusted input concatenated into shell, SQL, eval, or file paths; disabled TLS verification or bypassed auth checks; unpinned new dependencies; remote scripts piped to a shell (Warning)
+- **Plan follow-through** — the design's stated secret source and planned validation are delivered by the code; unresolved `SC-` findings from the newest audit are checked (Warning)
+- **Escalation** — one Info per change recommending `/opsx-security-audit` when the change touches auth, crypto, permissions, or secrets
+- A secret scanner is used only if already installed, with redaction enabled; one is never installed. Secret values are never reproduced in the report — evidence is file, line, and pattern type only
 
 ### Regression Safety (best-effort)
 

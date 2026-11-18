@@ -10,6 +10,9 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 AUDIT_SKILL="$REPO_ROOT/skills/openspec-audit-change/SKILL.md"
 APPLY_SKILL="$REPO_ROOT/skills/openspec-apply-audit/SKILL.md"
 VALIDATE_SKILL="$REPO_ROOT/skills/openspec-validate-change/SKILL.md"
+AUDIT_README="$REPO_ROOT/skills/openspec-audit-change/README.md"
+VALIDATE_README="$REPO_ROOT/skills/openspec-validate-change/README.md"
+ROOT_README="$REPO_ROOT/README.md"
 
 PASS=0
 FAIL=0
@@ -180,7 +183,142 @@ assert_no_skill_writes_gate_fields() {
   done
 }
 
-ALL_TESTS=(assert_audit_skill_step_6d assert_apply_audit_remediation assert_validate_skill_step_6b assert_validate_skill_guardrails assert_validate_skill_step_6c assert_audit_skill_regression_fields assert_apply_audit_level_rule assert_audit_skill_pattern_d assert_apply_audit_pattern_d_remediation assert_no_skill_writes_gate_fields)
+assert_validate_skill_security_check() {
+  echo "Test: validate skill step 8b (security)"
+  has "$VALIDATE_SKILL" "8. **Run Code Quality and Security Checks**" "step 8 restructured"
+  has "$VALIDATE_SKILL" "8a. Code quality" "8a Code quality heading"
+  has "$VALIDATE_SKILL" "8b. Security" "8b Security heading present"
+  has "$VALIDATE_SKILL" 'Category `Security`' "findings use Category Security"
+  has "$VALIDATE_SKILL" 'Secret scan (Error, Category `Security`)' "secret scan hits are Errors"
+  has "$VALIDATE_SKILL" "git diff -U0" "added lines obtained via git diff -U0"
+  has "$VALIDATE_SKILL" "id_rsa*" "credential file list"
+  has "$VALIDATE_SKILL" ".env.example" "template variants exempt"
+  has "$VALIDATE_SKILL" "disabled TLS verification" "disabled TLS is a Warning"
+  has "$VALIDATE_SKILL" "concatenated into shell, SQL, eval, or file paths" "injection is a Warning"
+  has "$VALIDATE_SKILL" "without pinned versions" "unpinned dependency is a Warning"
+  has "$VALIDATE_SKILL" "remote scripts piped to a shell" "piped remote script is a Warning"
+  has "$VALIDATE_SKILL" "Plan follow-through" "plan follow-through named"
+  has "$VALIDATE_SKILL" 'without a `## Resolved` header' "follow-through checks unresolved SC- findings"
+  has "$VALIDATE_SKILL" "one Info per change" "escalation is one Info per change"
+}
+
+assert_validate_skill_no_scanner_install() {
+  echo "Test: validate skill secret scanning never installs tools"
+  has "$VALIDATE_SKILL" "Never install, download, or update a scanner" "never-install wording"
+  has "$VALIDATE_SKILL" "redaction enabled" "scanner used with redaction enabled"
+  has "$VALIDATE_SKILL" "a missing scanner produces no finding" "missing scanner is not a finding"
+}
+
+assert_secret_pattern_set() {
+  echo "Test: shared secret pattern set (audit 9a and validate 8b)"
+  local f tag
+  for f in "$AUDIT_SKILL" "$VALIDATE_SKILL"; do
+    tag="$(basename "$(dirname "$f")")"
+    has "$f" '-----BEGIN[A-Z ]*PRIVATE KEY-----' "$tag: private-key header pattern"
+    has "$f" 'AKIA' "$tag: AKIA token prefix"
+    has "$f" 'ghp_' "$tag: ghp_ token prefix"
+    has "$f" 'github_pat_' "$tag: github_pat_ token prefix"
+    has "$f" 'xox[baprs]-' "$tag: xox token prefix"
+    has "$f" 'sk_live_' "$tag: sk_live_ token prefix"
+    has "$f" 'sk-ant-' "$tag: sk-ant- token prefix"
+    has "$f" 'password' "$tag: credential-named assignments: password"
+    has "$f" 'api_key' "$tag: credential-named assignments: api_key"
+    has "$f" 'private_key' "$tag: credential-named assignments: private_key"
+    has "$f" '8+ characters' "$tag: 8+ character minimum"
+    has "$f" 'scheme://user:pass@' "$tag: embedded-credential URL pattern"
+    has "$f" '<…>' "$tag: placeholder exemption: angle-bracket"
+    has "$f" '${…}' "$tag: placeholder exemption: dollar-brace"
+    has "$f" 'changeme' "$tag: placeholder exemption: changeme"
+    has "$f" 'dummy' "$tag: placeholder exemption: dummy"
+    has "$f" 'xxx' "$tag: placeholder exemption: xxx"
+    has "$f" 'redacted' "$tag: placeholder exemption: redacted"
+  done
+}
+
+assert_security_escalation() {
+  echo "Test: escalation to /opsx-security-audit (one Info per change, both skills)"
+  has "$AUDIT_SKILL" "/opsx-security-audit" "audit: escalation command named"
+  has "$AUDIT_SKILL" "one Info per change" "audit: one escalation per change"
+  has "$VALIDATE_SKILL" "/opsx-security-audit" "validate: escalation command named"
+  has "$VALIDATE_SKILL" "one Info per change" "validate: one escalation per change"
+}
+
+assert_apply_audit_security_remediation() {
+  echo "Test: apply-audit Security remediation"
+  has "$APPLY_SKILL" "rotate the exposed credential" "secret in artifact: user told to rotate"
+  has "$APPLY_SKILL" '$SERVICE_API_KEY' "secret in artifact: replaced with env-var reference"
+  has "$APPLY_SKILL" "Secret handling not planned" "warning: secret handling not planned"
+  has "$APPLY_SKILL" "Untrusted input without planned validation" "warning: untrusted input"
+  has "$APPLY_SKILL" "Ask the user whether to justify the weakening in the design or remove it" "weakened control: ask-user rule"
+  has "$APPLY_SKILL" "never decide on their behalf" "weakened control: no own decision"
+  has "$APPLY_SKILL" "Security escalation to \`/opsx-security-audit\`" "info: escalation noted"
+  has "$APPLY_SKILL" "SC-1" "SC- findings recognized in ID parsing"
+  lacks "$APPLY_SKILL" "Security surface omissions" "Security surface omissions removed from Coherence"
+}
+
+assert_skills_never_reproduce_secrets() {
+  echo "Test: never-reproduce-secrets guardrail present in all three skills"
+  local f tag
+  for f in "$AUDIT_SKILL" "$APPLY_SKILL" "$VALIDATE_SKILL"; do
+    tag="$(basename "$(dirname "$f")")"
+    has "$f" "Never reproduce secret values" "$tag: never-reproduce guardrail present"
+  done
+}
+
+assert_readme_security_category() {
+  echo "Test: top-level and skill READMEs list the Security category"
+  has "$ROOT_README" "six dimensions" "README: six-dimension wording"
+  has "$ROOT_README" '| **Security** |' "README: Security row present"
+  local lcoh lsec
+  lcoh="$(line_of "$ROOT_README" '| **Coherence** |')"
+  lsec="$(line_of "$ROOT_README" '| **Security** |')"
+  if [[ -n "$lcoh" && -n "$lsec" ]]; then
+    local coh_line
+    coh_line="$(sed -n "${lcoh}p" "$ROOT_README")"
+    if [[ "$coh_line" != *"security surface"* ]]; then
+      ok "README: Coherence row lacks 'security surface'"
+    else
+      bad "README: Coherence row lacks 'security surface' (still present)"
+    fi
+  else
+    bad "README: Coherence/Security rows found (lines: coherence=${lcoh:-?} security=${lsec:-?})"
+  fi
+  has "$AUDIT_README" "### Security (SC-)" "audit README: Security section"
+  has "$VALIDATE_README" "### Security" "validate README: Security dimension"
+}
+
+assert_audit_skill_security_category() {
+  echo "Test: audit skill Security category (step 9, SC-)"
+  has "$AUDIT_SKILL" "9. **Run Security Checks**" "step 9 heading present"
+  has "$AUDIT_SKILL" '`SC-1` (Security)' "SC- prefix in Output Constraints"
+  has "$AUDIT_SKILL" "9a. Secrets in artifacts" "9a named"
+  has "$AUDIT_SKILL" "9b. Secret handling planned" "9b named"
+  has "$AUDIT_SKILL" "9c. Untrusted input" "9c named"
+  has "$AUDIT_SKILL" "9d. Weakened security controls" "9d named"
+  has "$AUDIT_SKILL" "9e. Escalation to the full security audit" "9e named"
+  has "$AUDIT_SKILL" "Error**: Secret in artifacts (9a)" "severity: 9a is an Error"
+  has "$AUDIT_SKILL" "Warning**: Secret handling not planned (9b)" "severity: 9b is a Warning"
+  has "$AUDIT_SKILL" "untrusted input (9c), weakened control (9d)" "severity: 9c/9d are Warnings"
+  has "$AUDIT_SKILL" "Info**: Escalation to \`/opsx-security-audit\` (9e)" "severity: 9e is an Info"
+  has "$AUDIT_SKILL" "run on every change" "9a/9b are always-run"
+  has "$AUDIT_SKILL" "auth, user input, data storage, external communication, secrets, permissions, or crypto" "contextual trigger list"
+}
+
+assert_audit_skill_coherence_no_security() {
+  echo "Test: audit skill Coherence no longer carries security checks"
+  lacks "$AUDIT_SKILL" "Security surface awareness" "step 8d removed from Coherence"
+  lacks "$AUDIT_SKILL" "security surface omissions" "Coherence Warning line no longer names security"
+  local lcoh lsec
+  lcoh="$(line_of "$AUDIT_SKILL" "8. **Run Coherence Checks**")"
+  lsec="$(line_of "$AUDIT_SKILL" "9. **Run Security Checks**")"
+  if [[ -n "$lcoh" && -n "$lsec" && "$lcoh" -lt "$lsec" ]]; then
+    ok "Run Security Checks comes after Run Coherence Checks"
+  else
+    bad "Run Security Checks comes after Run Coherence Checks (lines: coherence=${lcoh:-?} security=${lsec:-?})"
+  fi
+}
+
+ALL_TESTS=(assert_audit_skill_step_6d assert_apply_audit_remediation assert_validate_skill_step_6b assert_validate_skill_guardrails assert_validate_skill_step_6c assert_audit_skill_regression_fields assert_apply_audit_level_rule assert_audit_skill_pattern_d assert_apply_audit_pattern_d_remediation assert_no_skill_writes_gate_fields assert_audit_skill_security_category assert_audit_skill_coherence_no_security assert_validate_skill_security_check assert_validate_skill_no_scanner_install assert_secret_pattern_set assert_security_escalation assert_apply_audit_security_remediation assert_skills_never_reproduce_secrets assert_readme_security_category)
 
 if [[ $# -eq 0 ]]; then
   for t in "${ALL_TESTS[@]}"; do "$t"; done
