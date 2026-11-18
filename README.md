@@ -12,7 +12,7 @@ Agent commands and skills for the [OpenSpec](https://openspec.dev) workflow. The
 |------|---------|--------------|
 | 1 | `/opsx-explore` | Thinking partner for exploring ideas, investigating problems, and clarifying requirements (recommended before proposing) |
 | 2 | `/opsx-propose` | Describe what you want to build; generates proposal, design, specs, and tasks |
-| 3 | `/opsx-audit` | Reviews artifacts for accuracy, completeness, validity, feasibility, and coherence |
+| 3 | `/opsx-audit` | Reviews artifacts for accuracy, completeness, validity, feasibility, coherence, and security |
 | 4 | `/opsx-apply-audit` | Applies audit findings — fixes errors and warnings in the artifacts |
 | 5 | `/opsx-apply` | Implements the actual code changes described in the tasks |
 | 6 | `/opsx-validate` | Validates implementation against proposal, specs, design, and audit findings |
@@ -34,7 +34,7 @@ The workflow rests on four principles:
 Two checkpoints slow the workflow down where it matters most:
 
 - **Audit (step 3)**: A fresh model reviews the change artifacts before implementation begins — scope gaps, missing specs, infeasible designs, task ordering issues. It presents a structured findings summary (errors, warnings, info); **you decide** what happens next: fix the findings with `/opsx-apply-audit`, re-audit, proceed anyway, or stop.
-- **Validate (step 6)**: A fresh model that did not write the code verifies the implementation against what was planned — spec compliance, test coverage, task completion, code quality, regression safety. It presents its findings and verdict; **you decide** whether to fix and re-validate, or archive.
+- **Validate (step 6)**: A fresh model that did not write the code verifies the implementation against what was planned — spec compliance, test coverage, task completion, code quality, security, regression safety. It presents its findings and verdict; **you decide** whether to fix and re-validate, or archive.
 
 The model informs; the human decides. Neither checkpoint is a model-judged pass/fail gate — "is this good enough?" is your call at each one.
 
@@ -81,7 +81,7 @@ Skills contain the detailed step-by-step logic that agents follow when a command
 
 | Skill | Purpose |
 |-------|---------|
-| `skills/openspec-audit-change/` | Structural + semantic audit of change artifacts (accuracy, completeness, validity, feasibility, coherence) |
+| `skills/openspec-audit-change/` | Structural + semantic audit of change artifacts (accuracy, completeness, validity, feasibility, coherence, security) |
 | `skills/openspec-apply-audit/` | Remediation engine — resolves audit findings by modifying artifacts |
 | `skills/openspec-validate-change/` | Validates implementation against proposal, specs, design, and audit findings |
 | `skills/security-audit/` | Comprehensive security audit: reconnaissance, threat hunting, validation, and reporting |
