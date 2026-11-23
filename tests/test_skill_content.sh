@@ -318,7 +318,26 @@ assert_audit_skill_coherence_no_security() {
   fi
 }
 
-ALL_TESTS=(assert_audit_skill_step_6d assert_apply_audit_remediation assert_validate_skill_step_6b assert_validate_skill_guardrails assert_validate_skill_step_6c assert_audit_skill_regression_fields assert_apply_audit_level_rule assert_audit_skill_pattern_d assert_apply_audit_pattern_d_remediation assert_no_skill_writes_gate_fields assert_audit_skill_security_category assert_audit_skill_coherence_no_security assert_validate_skill_security_check assert_validate_skill_no_scanner_install assert_secret_pattern_set assert_security_escalation assert_apply_audit_security_remediation assert_skills_never_reproduce_secrets assert_readme_security_category)
+assert_readme_authorship() {
+  echo "Test: top-level README authorship attribution"
+  has "$ROOT_README" "JB (jebucha)" "README: introduction names the developer"
+  has "$ROOT_README" "independent project extending the OpenSpec workflow" "README: independent project clause"
+  has "$ROOT_README" "not an official OpenSpec artifact" "README: not an official artifact clause"
+}
+
+assert_readme_mom_rationale() {
+  echo "Test: top-level README Mixture of Models rationale"
+  has "$ROOT_README" "different models have different blind spots" "README: blind-spots rationale"
+  has "$ROOT_README" "audit (step 3) and validate (step 6) checkpoints" "README: names audit and validate checkpoints"
+}
+
+assert_readme_context_isolation() {
+  echo "Test: top-level README context isolation at model switches"
+  has "$ROOT_README" "session with cleared context" "README: cleared-context statement"
+  has "$ROOT_README" "feasibility checks also read referenced source files" "README: no-overclaim clause"
+}
+
+ALL_TESTS=(assert_audit_skill_step_6d assert_apply_audit_remediation assert_validate_skill_step_6b assert_validate_skill_guardrails assert_validate_skill_step_6c assert_audit_skill_regression_fields assert_apply_audit_level_rule assert_audit_skill_pattern_d assert_apply_audit_pattern_d_remediation assert_no_skill_writes_gate_fields assert_audit_skill_security_category assert_audit_skill_coherence_no_security assert_validate_skill_security_check assert_validate_skill_no_scanner_install assert_secret_pattern_set assert_security_escalation assert_apply_audit_security_remediation assert_skills_never_reproduce_secrets assert_readme_security_category assert_readme_authorship assert_readme_mom_rationale assert_readme_context_isolation)
 
 if [[ $# -eq 0 ]]; then
   for t in "${ALL_TESTS[@]}"; do "$t"; done

@@ -2,6 +2,8 @@
 
 Agent commands and skills for the [OpenSpec](https://openspec.dev) workflow. These extend AI-assisted development environments (Kiro, opencode, etc.) with structured change management — from proposal through implementation and archive.
 
+Developed by JB (jebucha). This is an independent project extending the OpenSpec workflow — it is not an official OpenSpec artifact.
+
 ## Workflow
 
 ```
@@ -35,6 +37,10 @@ Two checkpoints slow the workflow down where it matters most:
 
 - **Audit (step 3)**: A fresh model reviews the change artifacts before implementation begins — scope gaps, missing specs, infeasible designs, task ordering issues. It presents a structured findings summary (errors, warnings, info); **you decide** what happens next: fix the findings with `/opsx-apply-audit`, re-audit, proceed anyway, or stop.
 - **Validate (step 6)**: A fresh model that did not write the code verifies the implementation against what was planned — spec compliance, test coverage, task completion, code quality, security, regression safety. It presents its findings and verdict; **you decide** whether to fix and re-validate, or archive.
+
+**Why different models matter here:** different models have different blind spots, so cross-model review at the audit (step 3) and validate (step 6) checkpoints catches issues a single model's self-review would miss.
+
+**Cleared context at each model switch:** switching to the auditor or validator role starts a session with cleared context — the model brings no conversational context from the authoring session. The persisted change artifacts (proposal, design, specs, tasks) are the state it inherits — though feasibility checks also read referenced source files, so the artifacts are not the auditor's exclusive input.
 
 The model informs; the human decides. Neither checkpoint is a model-judged pass/fail gate — "is this good enough?" is your call at each one.
 
